@@ -1,12 +1,13 @@
 import urllib
 import re
+import json 
 from bs4 import BeautifulSoup
 
 trope_list = set()
 tropes = {}
 media_list = set()
 media = {}
-allowed_media = [
+allowedMedia = [
     '/manga/',
     '/comicbook/',
     '/franchise/',
@@ -24,7 +25,7 @@ allowed_media = [
     '/webvideo/',
     ]
 
-ignoredtypes = [
+ignoredTypes = [
     # Ignore languages other than English (for now)
     '/no/',
     '/pt/',
@@ -39,8 +40,8 @@ ignoredtypes = [
     ]
 
 tvtropes_base = "tvtropes.org"
-tvtropes_mainpage = "http://www.tvtropes.org"
-tvtropes_tropeindex = tvtropes_mainpage + "/pmwiki/pmwiki.php/Main/Tropes"
+tvtropes_main = "http://tvtropes.org"
+tvtropes_tropeindex = tvtropes_main + "/pmwiki/pmwiki.php/Main/Tropes"
 
 def parse_trope(url):
     # Try and work out info from url
@@ -75,7 +76,7 @@ def parse_trope(url):
             if '/Main/' in example['href']:
                 continue
             # Save media associated to trope, check their urls
-            elif any(media in example['href'].lower() for media in allowed_media):
+            elif any(media in example['href'].lower() for media in allowedMedia):
                 tropes[pageTitle]['media'].append(example.string)
                 if example.string not in media_list:
                     newURLs.append(example['href'])
@@ -93,16 +94,25 @@ def parse_trope(url):
         subsequent = items[2].find('a')
         if previous:
             if previous.string not in trope_list:
-                newURLs.append(previous['href'])
+                newURLs.append(tvtropes_main + previous['href'])
         if current:
             tropes[pageTitle]['indicies'].append(current.string)
             if current.string not in trope_list:
-                newURLs.append(current['href'])
+                newURLs.append(tvtropes_main + current['href'])
+        if subsequent:    
             if subsequent.string not in trope_list:
-                newURLs.append(subsequent['href'])
+                newURLs.append(tvtropes_main + subsequent['href'])
    
     # Done Parsing
     return newURLs
+
+def parse_superTrope(url):
+    # Fill this in
+    return
+
+def parse_media(url):
+    # Fill this in
+    return
 
 # Recurse through all links found
 def recur_search(url):
@@ -113,16 +123,31 @@ def recur_search(url):
     # Don't follow external links
     if "tvtropes.org" not in url:
         return
+    # Ignore links with bad types
+    if pageType in ignoredTypes:
+        return
     # Ignore links already searched
     if pageTitle in trope_list or pageTitle in media_list:
         return
 
     print url
     print pageTitle + ": " + pageType
-    
-    # Let's get tropes working for now
-    if "Main" not in pageType:
-        return
+
+    # This URL is for media
+    if any(media in pageType.lower() for media in allowedMedia):
+        media_list.add(pageTitle)
+        newURLs = parse_media(url)
+    # This URL is for a trope or superTrope
+    else:
+        trope_list.add(pageTitle)
+        newURLs = parse_trope(url)
+
+    # Recurse this search through all new urls
+    for url in newURLs:
+        print url
+        #recur_search(url)
+
+    return
 
 def start_at_top():
     # Start the recursive search at the top level trope index
@@ -148,22 +173,30 @@ def start_at_top():
                 print 'category: ' + category + '\t' + url
 
 if __name__ == "__main__":
-    #Let's set up some tests
-    URLs = parse_trope("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury") 
+    # Let's set up some tests
     
+    # Trope parsing test
+    #URLs = parse_trope("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury") 
+    #print "URLS TO VISIT"
+    #print URLs
+    #print
+
+    # Recursive search test
+    recur_search("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury")
+    outJSON = open("test.json", "w")
+
     print
     print "MEDIA INDEX:"
-    print media
+    print json.dumps(media) 
+    json.dump(media, outJSON, indent = 4)
     print
     print "TROPE INDEX:"
-    print tropes
+    print json.dumps(tropes)
+    json.dump(tropes, outJSON, indent = 4)
     print
     print "MEDIA VISITED:"
     print media_list
     print
     print "TROPES VISITED:"
     print trope_list
-    print
-    print "URLS TO VISIT:"
-    print URLs
     print
