@@ -19,6 +19,9 @@ allowed_media = [
     '/series/',
     '/videogame/',
     '/webcomic/',
+    '/visualnovel/',
+    '/roleplay/',
+    '/webvideo/',
     ]
 
 ignoredtypes = [
@@ -42,8 +45,8 @@ tvtropes_tropeindex = tvtropes_mainpage + "/pmwiki/pmwiki.php/Main/Tropes"
 def parse_trope(url):
     # Try and work out info from url
     urlComponents = url.split('/')
-    pageTitle = url[-1]
-    pageType = url[-2]
+    pageTitle = urlComponents[-1]
+    pageType = urlComponents[-2]
     
     # Load Page
     html = BeautifulSoup(urllib.urlopen(url))
@@ -59,6 +62,7 @@ def parse_trope(url):
         return
 
     # There are some examples - Let's go find them    
+    tropes[pageTitle] = {}
     tropes[pageTitle]['media'] = []
     for example_block in example_blocks:
         # Find all links in example blocks
@@ -83,14 +87,19 @@ def parse_trope(url):
     related = html.find_all(attrs={"class": "wiki-walk"})[0]
     rows = related.find_all(attrs={"class": "walk-row"})
     for row in rows:
-        items = row.find_all('a')
-        if items[0].string not in trope_list:
-            newURLs.append(items[0]['href'])
-        tropes[pageTitle]['indicies'].append(items[1].string)
-        if items[1].string not in trope_list:
-            newURLs.append(items[1]['href'])
-        if items[2].string not in trope_list:
-            newURLs.append(items[2]['href'])
+        items = row.find_all('span')
+        previous = items[0].find('a')
+        current = items[1].find('a')
+        subsequent = items[2].find('a')
+        if previous:
+            if previous.string not in trope_list:
+                newURLs.append(previous['href'])
+        if current:
+            tropes[pageTitle]['indicies'].append(current.string)
+            if current.string not in trope_list:
+                newURLs.append(current['href'])
+            if subsequent.string not in trope_list:
+                newURLs.append(subsequent['href'])
    
     # Done Parsing
     return newURLs
@@ -98,8 +107,8 @@ def parse_trope(url):
 # Recurse through all links found
 def recur_search(url):
     urlComponents = url.split('/')
-    pageTitle = url[-1]
-    pageType = url[-2]
+    pageTitle = urlComponents[-1]
+    pageType = urlComponents[-2]
 
     # Don't follow external links
     if "tvtropes.org" not in url:
@@ -139,5 +148,22 @@ def start_at_top():
                 print 'category: ' + category + '\t' + url
 
 if __name__ == "__main__":
-    print "test"
-
+    #Let's set up some tests
+    URLs = parse_trope("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury") 
+    
+    print
+    print "MEDIA INDEX:"
+    print media
+    print
+    print "TROPE INDEX:"
+    print tropes
+    print
+    print "MEDIA VISITED:"
+    print media_list
+    print
+    print "TROPES VISITED:"
+    print trope_list
+    print
+    print "URLS TO VISIT:"
+    print URLs
+    print
