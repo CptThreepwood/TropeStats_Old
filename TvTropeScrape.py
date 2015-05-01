@@ -102,31 +102,35 @@ def parse_trope(url):
     newURLs = []
 
     # Find all blocks of examples of this trope
-    example_blocks = html.find_all("div", attrs={"class": "folder"})
+    bullets = html.find_all("li")
 
-    # If there is no example section, assume this is a super trope page
-    if not example_blocks:
+    # Super trope page
+    if "main" not in pageType.lower():
         print url, " is not a trope page"
-        # This is a super-trope page
+        parse_superTrope(url)
         return
 
     # There are some examples - Let's go find them    
     tropes[pageTitle] = {}
-    tropes[pageTitle]['media'] = []
-    for example_block in example_blocks:
+    tropes[pageTitle]['media'] = set()
+    tropes[pageTitle]['url'] = url
+    tropes[pageTitle]['title'] = html.find('title').string.replace(" - TV Tropes", "")
+    for example_block in bullets:
         # Find all links in example blocks
         examples = example_block.find_all('a')
         for example in examples:
             # Skip external links
             if tvtropes_base not in example['href']:
                 continue
+            entryInfo = example['href'].split('/')
+            entryKey = entryInfo[-2] + '/' + entryInfo[-1]
             # Skip tropes
             if '/Main/' in example['href']:
                 continue
             # Save media associated to trope, check their urls
-            elif any(media in example['href'].lower() for media in allowedMedia):
-                tropes[pageTitle]['media'].append(example.string)
-                if example.string not in media_list:
+            elif any(media in entryInfo[-2].lower() for media in allowedMedia):
+                tropes[pageTitle]['media'].add(entryKey)
+                if example.string not in media_visited:
                     newURLs.append(example['href'])
             else:
                 print "Not currently considering: ", example['href']
@@ -141,26 +145,92 @@ def parse_trope(url):
         current = items[1].find('a')
         subsequent = items[2].find('a')
         if previous:
-            if previous.string not in trope_list:
+            if previous.string not in tropes_visited:
                 newURLs.append(tvtropes_main + previous['href'])
         if current:
             tropes[pageTitle]['indicies'].append(current.string)
-            if current.string not in trope_list:
+            if current.string not in tropes_visited:
                 newURLs.append(tvtropes_main + current['href'])
         if subsequent:    
-            if subsequent.string not in trope_list:
+            if subsequent.string not in tropes_visited:
                 newURLs.append(tvtropes_main + subsequent['href'])
    
     # Done Parsing
     return newURLs
 
 def parse_superTrope(url):
-    # Fill this in
+    
     return
 
 def parse_media(url):
-    # Fill this in
-    return
+    # Try and work out info from url
+    urlComponents = url.split('/')
+    pageTitle = urlComponents[-1]
+    pageType = urlComponents[-2]
+    pageKey = pageType + '/' + pageTitle
+
+    # Load Page
+    html = BeautifulSoup(urllib.urlopen(url))
+    newURLs = []
+
+    # Find text block
+    textblock = html.find(attrs={"id": "wikitext"})
+
+    # If there is no text block, give up
+    if not textblock:
+        print url, " is not a media page"
+        return
+
+    # There are some tropes - Let's go find them    
+    media[pageKey] = {}
+    media[pageKey]['tropes'] = set()
+    media[pageKey]['url'] = url
+    media[pageKey]['title'] = html.find('title').string.replace(" - TV Tropes", "")
+    #tropeblock = textblock.find('ul')
+    #items = tropeblock.find('li')
+    #items = [items] + items.find_next_siblings('li')
+    items = textblock.find_all('li')
+    nSubTags = 0
+    for item in items:
+        # Skip any 'li' nested within 'li'
+        if nSubTags > 0:
+            nSubTags -= 1
+            continue
+        else:
+            nSubTags = len(item.find_all('li'))
+
+        # Find the first link in a line
+        link = item.find('a')
+        # Verify we have a link and Skip external links
+        if not link or tvtropes_base not in link['href']:
+            continue
+        # Save tropes associated to this media, check their urls
+        media[pageKey]['tropes'].add(link['href'].split('/')[-1])
+        if link.string not in tropes_visited:
+            newURLs.append(link['href'])
+
+    # Map out related media 
+    media[pageKey]['indicies'] = []
+    related = html.find(attrs={"class": "wiki-walk"})
+    rows = related.find_all(attrs={"class": "walk-row"})
+    for row in rows:
+        items = row.find_all('span')
+        previous = items[0].find('a')
+        current = items[1].find('a')
+        subsequent = items[2].find('a')
+        if previous:
+            if previous.string not in media_visited:
+                newURLs.append(tvtropes_main + previous['href'])
+        if current:
+            media[pageKey]['indicies'].append(current.string)
+            if current.string not in tropes_visited:
+                newURLs.append(tvtropes_main + current['href'])
+        if subsequent:    
+            if subsequent.string not in media_visited:
+                newURLs.append(tvtropes_main + subsequent['href'])
+   
+    # Done Parsing
+    return newURLs
 
 # Recurse through all links found
 def recur_search(url):
@@ -175,7 +245,7 @@ def recur_search(url):
     if pageType in ignoredTypes:
         return
     # Ignore links already searched
-    if pageTitle in trope_list or pageTitle in media_list:
+    if pageTitle in tropes_visited or pageTitle in media_visited:
         return
 
     print url
@@ -183,11 +253,11 @@ def recur_search(url):
 
     # This URL is for media
     if any(media in pageType.lower() for media in allowedMedia):
-        media_list.add(pageTitle)
+        media_visited.add(pageTitle)
         newURLs = parse_media(url)
     # This URL is for a trope or superTrope
     else:
-        trope_list.add(pageTitle)
+        tropes_visited.add(pageTitle)
         newURLs = parse_trope(url)
 
     # Recurse this search through all new urls
