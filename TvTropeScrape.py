@@ -183,9 +183,6 @@ def parse_trope(url):
         
         # Assign results to appropriate dictionary
         if thisPage == "trope":
-            # Skip tropes if a trope page
-            #if 'main' in entryInfo[-2].lower():
-            #    continue
             # Save media associated to trope, check their urls
             if any(media in entryInfo[-2].lower() for media in allowedMedia):
                 tropes[pageTitle]['media'].add(entryKey)
@@ -195,8 +192,8 @@ def parse_trope(url):
                 print "Not currently considering: ", link['href']
         else:
             # Skip media if a media page
-            if any(media in entryInfo[-2].lower() for media in allowedMedia):
-                continue
+            #if any(media in entryInfo[-2].lower() for media in allowedMedia):
+            #    continue
             # Save tropes associated to this media, check their urls
             media[pageKey]['tropes'].add(link['href'].split('/')[-1])
             if link.string not in tropes_visited:
