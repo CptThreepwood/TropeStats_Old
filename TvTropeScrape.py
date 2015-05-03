@@ -1,4 +1,5 @@
 import urllib
+import urllib2
 import re
 from bs4 import BeautifulSoup
 
@@ -10,6 +11,7 @@ class SetEncoder(json.JSONEncoder):
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
 
+known_redirects = {}
 tropes_visited = set()
 tropes = {}
 media_visited = set()
@@ -96,47 +98,111 @@ def parse_trope(url):
     urlComponents = url.split('/')
     pageTitle = urlComponents[-1]
     pageType = urlComponents[-2]
+    pageKey = pageType + '/' + pageTitle
     
     # Load Page
     html = BeautifulSoup(urllib.urlopen(url))
     newURLs = []
 
-    # Find all blocks of examples of this trope
-    bullets = html.find_all("li")
-
     # Super trope page
-    if "main" not in pageType.lower():
-        print url, " is not a trope page"
+    if any(media in pageType.lower() for media in allowedMedia):
+        thisPage = "media"
+    elif "main" in pageType.lower():
+        thisPage = "trope"
+    else:
+        print url, " is not a trope or media page"
         parse_superTrope(url)
         return
 
-    # There are some examples - Let's go find them    
-    tropes[pageTitle] = {}
-    tropes[pageTitle]['media'] = set()
-    tropes[pageTitle]['url'] = url
-    tropes[pageTitle]['title'] = html.find('title').string.replace(" - TV Tropes", "")
-    for example_block in bullets:
-        # Find all links in example blocks
-        examples = example_block.find_all('a')
-        for example in examples:
-            # Skip external links
-            if tvtropes_base not in example['href']:
-                continue
-            entryInfo = example['href'].split('/')
-            entryKey = entryInfo[-2] + '/' + entryInfo[-1]
-            # Skip tropes
-            if '/Main/' in example['href']:
-                continue
-            # Save media associated to trope, check their urls
-            elif any(media in entryInfo[-2].lower() for media in allowedMedia):
-                tropes[pageTitle]['media'].add(entryKey)
-                if example.string not in media_visited:
-                    newURLs.append(example['href'])
-            else:
-                print "Not currently considering: ", example['href']
+    # Find text block
+    textblock = html.find(attrs={"id": "wikitext"})
+    
+    # If there is no text block, give up
+    if not textblock:
+        print url, " has no wikitext"
+        return
 
-    # Map out related tropes
-    tropes[pageTitle]['indicies'] = []
+    # Set up dictionary entries
+    if thisPage == "trope":
+        tropes[pageTitle] = {}
+        tropes[pageTitle]['media'] = set()
+        tropes[pageTitle]['url'] = url
+        tropes[pageTitle]['title'] = html.find('title').string.replace(" - TV Tropes", "")
+        tropes[pageTitle]['indicies'] = []
+    else:
+        media[pageKey] = {}
+        media[pageKey]['tropes'] = set()
+        media[pageKey]['url'] = url
+        media[pageKey]['title'] = html.find('title').string.replace(" - TV Tropes", "")
+        media[pageKey]['indicies'] = []
+        
+    # There are some examples - Let's go find them    
+    items = textblock.find_all('li')
+    nSubTags = 0
+    for item in items:
+        # Skip any 'li' nested within 'li'
+        if nSubTags > 0:
+            nSubTags -= 1
+            continue
+        else:
+            nSubTags = len(item.find_all('li'))
+        
+        # Find the first relevant link in a line
+        links = item.find_all('a')
+        link = None
+        entryInfo = None
+        for testlink in links:
+            finalURL = None
+            if testlink['href'] in known_redirects:
+                finalURL = known_redirects[testlink['href']]
+            else:
+                req = urllib2.Request(testlink['href'])
+                res = urllib2.urlopen(req)
+                finalURL = res.geturl()
+                known_redirects[testlink['href']] = finalURL
+            if not finalURL:
+                continue
+
+            entryInfo = finalURL.split('/')
+            redirectIndex = entryInfo[-1].rfind("?from=") 
+            if redirectIndex > 0:
+                entryInfo[-1] = entryInfo[-1][0:redirectIndex]
+            if tvtropes_base not in testlink['href']:
+                continue
+            if thisPage == "trope" and any(media in entryInfo[-2].lower() for media in allowedMedia):
+                link = testlink
+                break
+            elif thisPage == "media" and 'main' in entryInfo[-2].lower():
+                link = testlink
+                break
+
+        # Verify we have a link and Skip external links
+        if not link:
+            continue
+        entryKey = entryInfo[-2] + '/' + entryInfo[-1]
+        
+        # Assign results to appropriate dictionary
+        if thisPage == "trope":
+            # Skip tropes if a trope page
+            #if 'main' in entryInfo[-2].lower():
+            #    continue
+            # Save media associated to trope, check their urls
+            if any(media in entryInfo[-2].lower() for media in allowedMedia):
+                tropes[pageTitle]['media'].add(entryKey)
+                if entryInfo[-1] not in media_visited:
+                    newURLs.append(link['href'])
+            else:
+                print "Not currently considering: ", link['href']
+        else:
+            # Skip media if a media page
+            if any(media in entryInfo[-2].lower() for media in allowedMedia):
+                continue
+            # Save tropes associated to this media, check their urls
+            media[pageKey]['tropes'].add(link['href'].split('/')[-1])
+            if link.string not in tropes_visited:
+                newURLs.append(link['href'])
+
+    # Map out related pages
     related = html.find_all(attrs={"class": "wiki-walk"})[0]
     rows = related.find_all(attrs={"class": "walk-row"})
     for row in rows:
@@ -145,14 +211,17 @@ def parse_trope(url):
         current = items[1].find('a')
         subsequent = items[2].find('a')
         if previous:
-            if previous.string not in tropes_visited:
+            if previous.string not in tropes_visited and previous.string not in media_visited:
                 newURLs.append(tvtropes_main + previous['href'])
         if current:
-            tropes[pageTitle]['indicies'].append(current.string)
-            if current.string not in tropes_visited:
+            if thisPage == "trope":
+                tropes[pageTitle]['indicies'].append(current.string)
+            else:
+                media[pageKey]['indicies'].append(current.string)
+            if current.string not in tropes_visited and current.string not in media_visited:
                 newURLs.append(tvtropes_main + current['href'])
         if subsequent:    
-            if subsequent.string not in tropes_visited:
+            if subsequent.string not in tropes_visited and subsequent.string not in media_visited:
                 newURLs.append(tvtropes_main + subsequent['href'])
    
     # Done Parsing
@@ -300,6 +369,9 @@ if __name__ == "__main__":
     # Media parsing test
     URLs += parse_media("http://tvtropes.org/pmwiki/pmwiki.php/Manga/Monster") 
 
+    # SuperTrope parsing test
+    #URLs += parse_media("http://tvtropes.org/pmwiki/pmwiki.php/Main/ActionGirl") 
+    
     # Recursive search test
     #recur_search("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury")
 
@@ -320,4 +392,8 @@ if __name__ == "__main__":
     print
     print "TROPES VISITED:"
     print tropes_visited
+    print
+    print "KNOWN REDIRECTS:"
+    for redirect in known_redirects:
+        print redirect, ": ", known_redirects[redirect]
     print
