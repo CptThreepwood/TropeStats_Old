@@ -18,6 +18,7 @@ media_visited = set()
 media = {}
 allowedMedia = [
     'comicbook',
+    'disney',               # Apparently big enough to be it's own type of media.  Who knew?
     'fanfic',
     'film',
     'franchise',
