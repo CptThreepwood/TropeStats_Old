@@ -2,6 +2,7 @@ import urllib
 import urllib2
 import sys
 import re
+from collections import deque
 from bs4 import BeautifulSoup
 
 import json 
@@ -14,6 +15,9 @@ class SetEncoder(json.JSONEncoder):
 
 counter = 0
 limit = 5
+
+newURLs = deque()
+
 known_redirects = {}
 tropes_visited = set()
 tropes = {}
@@ -236,7 +240,6 @@ def parse_trope(url):
                 newURLs.append(tvtropes_main + subsequent['href'])
    
     # Done Parsing
-    return newURLs
     return
 
 # Recurse through all links found
@@ -279,10 +282,9 @@ def recur_search(url):
         tropes_visited.add(pageTitle)
     parse_page(url)
 
-    # Recurse this search through all new urls
-    for url in newURLs:
-        print url
-        #recur_search(url)
+    # Recurse this search through all untested urls
+    if newURLs:
+        recur_search(newURLs.popleft())
 
     return
 
