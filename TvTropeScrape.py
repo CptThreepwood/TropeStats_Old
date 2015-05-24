@@ -1,5 +1,6 @@
 import urllib
 import urllib2
+import sys
 import re
 from bs4 import BeautifulSoup
 
@@ -11,6 +12,8 @@ class SetEncoder(json.JSONEncoder):
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
 
+counter = 0
+limit = 5
 known_redirects = {}
 tropes_visited = set()
 tropes = {}
@@ -234,38 +237,47 @@ def parse_trope(url):
    
     # Done Parsing
     return newURLs
-
-def parse_superTrope(url):
-    
     return
 
 # Recurse through all links found
 def recur_search(url):
+    global counter
+    if limit != -1 and counter >= limit:
+        print "Exceeded counter"
+        outJSON.write('Media\n\n')
+        json.dump(media, outJSON, indent = 4, cls=SetEncoder)
+        outJSON.write('\nTropes\n\n')
+        json.dump(tropes, outJSON, indent = 4, cls=SetEncoder)
+        sys.exit()
+
+    counter = counter + 1
     urlComponents = url.split('/')
     pageTitle = urlComponents[-1]
     pageType = urlComponents[-2]
 
+    print counter, ": ", url
     # Don't follow external links
     if "tvtropes.org" not in url:
+        print "External Link Ignored"
         return
     # Ignore links with bad types
     if pageType in ignoredTypes:
+        print "Link to uninteresting page ignored"
         return
     # Ignore links already searched
     if pageTitle in tropes_visited or pageTitle in media_visited:
+        print "Link already discovered"
         return
 
-    print url
     print pageTitle + ": " + pageType
 
     # This URL is for media
     if any(media in pageType.lower() for media in allowedMedia):
         media_visited.add(pageTitle)
-        newURLs = parse_media(url)
     # This URL is for a trope or superTrope
     else:
         tropes_visited.add(pageTitle)
-        newURLs = parse_trope(url)
+    parse_page(url)
 
     # Recurse this search through all new urls
     for url in newURLs:
