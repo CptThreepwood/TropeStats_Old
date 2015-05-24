@@ -296,6 +296,11 @@ def recur_search(url):
         sys.exit()
 
     counter = counter + 1
+    if url in known_redirects:
+        url = known_redirects[url]
+    redirectIndex = url.rfind("?from=") 
+    if redirectIndex > 0:
+        url = url[0:redirectIndex]
     urlComponents = url.split('/')
     pageTitle = urlComponents[-1]
     pageType = urlComponents[-2]
@@ -356,38 +361,40 @@ def start_at_top():
 if __name__ == "__main__":
     # Let's set up some tests
     outJSON = open("test.json", "w")
-    
+   
     # Trope parsing test
-    URLs = parse_trope("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury") 
+    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury") 
 
     # Media parsing test
-    URLs += parse_trope("http://tvtropes.org/pmwiki/pmwiki.php/Manga/Monster") 
+    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Manga/MahouSenseiNegima") 
 
     # SuperTrope parsing test
-    #URLs += parse_media("http://tvtropes.org/pmwiki/pmwiki.php/Main/ActionGirl") 
+    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Main/ActionGirl") 
+    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/ActionGirl/AnimatedFilms") 
     
     # Recursive search test
-    #recur_search("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury")
+    recur_search("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury")
 
-    print "URLS TO VISIT"
-    for URL in URLs:
-        print URL
-    print
-    print "MEDIA INDEX:"
-    print json.dumps(media, cls=SetEncoder) 
-    json.dump(media, outJSON, indent = 4, cls=SetEncoder)
-    print
-    print "TROPE INDEX:"
-    print json.dumps(tropes, cls=SetEncoder)
-    json.dump(tropes, outJSON, indent = 4, cls=SetEncoder)
-    print
-    print "MEDIA VISITED:"
-    print media_visited
-    print
-    print "TROPES VISITED:"
-    print tropes_visited
-    print
-    print "KNOWN REDIRECTS:"
-    for redirect in known_redirects:
-        print redirect, ": ", known_redirects[redirect]
-    print
+#    print "URLS TO VISIT"
+#    for URL in newURLs:
+#        print URL
+#    print
+#    print "MEDIA INDEX:"
+#    print json.dumps(media, cls=SetEncoder) 
+#    json.dump(media, outJSON, indent = 4, cls=SetEncoder)
+#    print
+#    print "TROPE INDEX:"
+#    print json.dumps(tropes, cls=SetEncoder)
+#    json.dump(tropes, outJSON, indent = 4, cls=SetEncoder)
+#    print
+#    print "MEDIA VISITED:"
+#    print media_visited
+#    print
+#    print "TROPES VISITED:"
+#    print tropes_visited
+#    print
+#    print "KNOWN REDIRECTS:"
+#    for redirect in known_redirects:
+#        print redirect, ": ", known_redirects[redirect]
+#    print
+
