@@ -28,6 +28,7 @@ allowedMedia = [
     'comicbook',
     'comics',
     'comicstrip',
+    'diskworld',
     'disney',               # Apparently big enough to be it's own type of media.  Who knew?
     'fanfic',
     'film',
@@ -288,7 +289,7 @@ def parse_page(url, options = None):
 def recur_search(url):
     global counter
     if limit != -1 and counter >= limit:
-        print "Exceeded counter"
+        print "Exceeded limit"
         outJSON.write('Media\n\n')
         json.dump(media, outJSON, indent = 4, cls=SetEncoder)
         outJSON.write('\nTropes\n\n')
