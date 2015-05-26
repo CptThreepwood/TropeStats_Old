@@ -19,8 +19,9 @@ cursor.execute('''CREATE TABLE MediaTropes
                  Trope text NOT NULL, 
                  Strength real,
                  Direction int,
-                 CONSTRAINT FK_MediaName FOREIGN KEY (Media) References Media(MediaName)
-                 CONSTRAINT FK_TropeName FOREIGN KEY (Trope) References Tropes(TropeName))''')
+                 CONSTRAINT PK_MediaTrope PRIMARY KEY(Media,Trope))''')
+#                 CONSTRAINT FK_MediaName FOREIGN KEY (Media) References Media(MediaName)
+#                 CONSTRAINT FK_TropeName FOREIGN KEY (Trope) References Tropes(TropeName))''')
 
 connection.commit()
 connection.close()
