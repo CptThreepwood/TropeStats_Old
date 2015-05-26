@@ -12,12 +12,16 @@ class SetEncoder(json.JSONEncoder):
             return list(obj)
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
+import sqlite3
 
 counter = 0
-limit = 5
+limit = 40
+
+DatabaseName = "TropeStats.db"
+dbconnection = None
+dbcursor = None
 
 newURLs = deque()
-
 known_redirects = {}
 tropes_visited = set()
 tropes = {}
@@ -111,6 +115,39 @@ ignoredTypes = [
 tvtropes_base = "tvtropes.org"
 tvtropes_main = "http://tvtropes.org"
 tvtropes_tropeindex = tvtropes_main + "/pmwiki/pmwiki.php/Main/Tropes"
+
+def add_media(mediaKey, mediaUrl, mediaTitle):
+    global dbconnection
+    try:
+        with dbconnection:
+            dbconnection.execute("INSERT INTO Media VALUES (?, ?, ?)", (mediaKey, mediaUrl, mediaTitle))
+    except sqlite3.IntegrityError:
+        print "Attempted to add media page ", mediaKey, " twice: ", mediaUrl
+    return
+
+def add_trope(tropeKey, tropeUrl, tropeTitle):
+    global dbconnection
+    try:
+        with dbconnection:
+            dbconnection.execute("INSERT INTO Tropes VALUES (?, ?, ?)", (tropeKey, tropeUrl, tropeTitle))
+    except sqlite3.IntegrityError:
+        print "Attempted to add media page ", tropeKey, " twice: ", tropeUrl
+    return
+
+def add_relation(mediaKey, tropeKey, strength, direction):
+    global dbcursor
+    dbcursor.execute("SELECT * FROM MediaTropes WHERE Media=? AND Trope=?", (pageKey, tropeKey))
+    result = dbcursor.fetchone()
+    if result:
+        if result[3] != direction:
+            dbcursor.execute("UPDATE MediaTropes SET Direction=0 WHERE Media=? AND Trope=?", (pageKey, tropeJey))
+    else::
+        try:
+            with dbconnection:
+                dbcursor.execute("INSERT INTO relations VALUES (?, ?, ?)", (pageKey, tropeKey, strength, direction)
+        except sqlite3.IntegrityError:
+            print "Tried to add a relation that already exists but SELECT didn't find.  What is going on?"
+            print pageKey, '\t', tropeKey
 
 def parse_page(url, options = None):
     print url
