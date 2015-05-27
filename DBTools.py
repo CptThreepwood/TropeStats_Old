@@ -30,6 +30,29 @@ def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
             print pageKey, '\t', tropeKey
     return
 
+def add_url(dbconnection, url)
+    try:
+        with dbconnection:
+            dbconnection.execute("INSERT INTO SiteChecklist VALUES (?, 0)", (url))
+    except sqlite3.IntegrityError:
+        print "Tried to add a url that already exists"
+        print url
+    return
+
+def checked_url(dbconnection, url)
+    try:
+        with dbconnection:
+            dbconnection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Url=?", (url))
+    return
+
+def get_Urls(dbconnection)
+    dbcursor = dbconnection.cursor()
+    dbcursor.execute("SELECT Url FROM UrlChecklist WHERE Visited=0")
+    newUrls = dbcursor.fetchall()
+    dbcursor.execute("SELECT Url FROM UrlChecklist WHERE Visited=1")
+    oldUrls = dbcursor.fetchall()
+    return newUrls, oldUrls
+
 def load_media(dbconnection):
     dbcursor = dbconnection.cursor()
     # Find all media for which the last visit less than 7 days from now
@@ -73,8 +96,10 @@ def initialise_db():
                         Strength real,
                         Direction int,
                         CONSTRAINT PK_MediaTrope PRIMARY KEY(Media,Trope))''')
-#                 CONSTRAINT FK_MediaName FOREIGN KEY (Media) References Media(MediaName)
-#                 CONSTRAINT FK_TropeName FOREIGN KEY (Trope) References Tropes(TropeName))''')
+        cursor.execute('''CREATE TABLE UrlChecklist
+                        (Url text NOT NULL,
+                         Visited int,
+                         CONSTRAINT PK_Url PRIMARY KEY(Url))''')
 
         connection.commit()
         return connection
