@@ -5,6 +5,7 @@ import re
 from collections import deque
 from bs4 import BeautifulSoup
 
+from DBTools import *
 import json 
 class SetEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -116,41 +117,10 @@ tvtropes_base = "tvtropes.org"
 tvtropes_main = "http://tvtropes.org"
 tvtropes_tropeindex = tvtropes_main + "/pmwiki/pmwiki.php/Main/Tropes"
 
-def add_media(mediaKey, mediaUrl, mediaTitle):
-    global dbconnection
-    try:
-        with dbconnection:
-            dbconnection.execute("INSERT INTO Media VALUES (?, ?, ?)", (mediaKey, mediaUrl, mediaTitle))
-    except sqlite3.IntegrityError:
-        print "Attempted to add media page ", mediaKey, " twice: ", mediaUrl
-    return
-
-def add_trope(tropeKey, tropeUrl, tropeTitle):
-    global dbconnection
-    try:
-        with dbconnection:
-            dbconnection.execute("INSERT INTO Tropes VALUES (?, ?, ?)", (tropeKey, tropeUrl, tropeTitle))
-    except sqlite3.IntegrityError:
-        print "Attempted to add media page ", tropeKey, " twice: ", tropeUrl
-    return
-
-def add_relation(mediaKey, tropeKey, strength, direction):
-    global dbcursor
-    dbcursor.execute("SELECT * FROM MediaTropes WHERE Media=? AND Trope=?", (pageKey, tropeKey))
-    result = dbcursor.fetchone()
-    if result:
-        if result[3] != direction:
-            dbcursor.execute("UPDATE MediaTropes SET Direction=0 WHERE Media=? AND Trope=?", (pageKey, tropeJey))
-    else::
-        try:
-            with dbconnection:
-                dbcursor.execute("INSERT INTO relations VALUES (?, ?, ?)", (pageKey, tropeKey, strength, direction)
-        except sqlite3.IntegrityError:
-            print "Tried to add a relation that already exists but SELECT didn't find.  What is going on?"
-            print pageKey, '\t', tropeKey
-
 def parse_page(url, options = None):
-    print url
+    global dbcursor
+    global dbconnection
+    
     # Try and work out info from url
     urlComponents = url.split('/')
     pageTitle = urlComponents[-1]
@@ -187,23 +157,34 @@ def parse_page(url, options = None):
         print url, " has no wikitext"
         return
 
+    # Save this media page information
     if thisPage == "media":
         if pageKey not in media:
+            print "Creating New Media Entry"
             media[pageKey] = {}
             media[pageKey]['tropes'] = set()
             media[pageKey]['url'] = url
             media[pageKey]['title'] = html.find('title').string.replace(" - TV Tropes", "")
             media[pageKey]['indicies'] = []
+            add_media(dbconnection, pageKey, url, html.find('title').string.replace(" - TV Tropes", ""))
+    # Save this trope page information
     elif thisPage == "trope":
         if pageTitle not in tropes:
+            print "Creating New Trope Entry"
             tropes[pageTitle] = {}
             tropes[pageTitle]['media'] = set()
             tropes[pageTitle]['url'] = url
             tropes[pageTitle]['title'] = html.find('title').string.replace(" - TV Tropes", "")
             tropes[pageTitle]['indicies'] = []
+            add_trope(dbconnection, pageTitle, url, html.find('title').string.replace(" - TV Tropes", ""))
+        # We're visiting a top page after visiting subpages
         if 'url' not in tropes[pageTitle]:
+            print "Creating New SuperTrope Entry"
             tropes[pageTitle]['url'] = url
+            add_trope(dbconnection, pageTitle, url, tropes[pageTitle]['title'])
+    # Sub-page, don't add to db (we'll do it when we get to the top page)
     elif pageTitle not in tropes:
+        print "Not Creating an Entry - SubTrope"
         tropes[pageTitle] = {}
         tropes[pageTitle]['media'] = set()
         tropes[pageTitle]['title'] = html.find('title').string.replace(" - TV Tropes", "").split('/')[-1].strip()
@@ -259,7 +240,9 @@ def parse_page(url, options = None):
         if thisPage == "media":
             # Save tropes associated to this media, check their urls
             if 'main' in entryInfo[-2].lower():
-                media[pageKey]['tropes'].add(link['href'].split('/')[-1])
+                tropeKey = link['href'].split('/')[-1]
+                media[pageKey]['tropes'].add(tropeKey)
+                add_relation(dbconnection, pageKey, tropeKey, 1, 1)
                 if link.string not in tropes_visited:
                     newURLs.append(link['href'])
             # We've got a bunch of sub-pages for this media
@@ -269,6 +252,7 @@ def parse_page(url, options = None):
             # Save media associated to trope, check their urls
             if any(media in entryInfo[-2].lower() for media in allowedMedia):
                 tropes[pageTitle]['media'].add(entryKey)
+                add_relation(dbconnection, entryKey, pageTitle, 1, -1)
                 if entryInfo[-1] not in media_visited:
                     newURLs.append(link['href'])
             # If this is a super-trope page, let's go explore the sub-tropes
@@ -319,7 +303,10 @@ def parse_page(url, options = None):
                 if subsequent.string not in tropes_visited and subsequent.string not in media_visited and subsequentType.lower() not in ignoredTypes:
                     newURLs.append(tvtropes_main + subsequent['href'])
    
-    # Done Parsing
+    # Done Parsing, add to DB
+
+    dbconnection.commit()
+
     return
 
 # Recurse through all links found
@@ -331,6 +318,8 @@ def recur_search(url):
         json.dump(media, outJSON, indent = 4, cls=SetEncoder)
         outJSON.write('\nTropes\n\n')
         json.dump(tropes, outJSON, indent = 4, cls=SetEncoder)
+        dbconnection.commit()
+        dbconnection.close()
         sys.exit()
 
     counter = counter + 1
@@ -399,7 +388,15 @@ def start_at_top():
 if __name__ == "__main__":
     # Let's set up some tests
     outJSON = open("test.json", "w")
+    dbconnection = initialise_db() 
+    dbcursor = dbconnection.cursor()
    
+    media_visited.update(load_media(dbconnection))
+    tropes_visited.update(load_tropes(dbconnection))
+
+    print media_visited
+    print tropes_visited
+
     # Trope parsing test
     #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury") 
 
@@ -413,6 +410,8 @@ if __name__ == "__main__":
     # Recursive search test
     recur_search("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury")
 
+    dbconnection.commit()
+    dbconnection.close()
 #    print "URLS TO VISIT"
 #    for URL in newURLs:
 #        print URL

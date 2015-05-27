@@ -1,4 +1,5 @@
 import sqlite3
+import os.path
 
 def add_media(dbconnection, mediaKey, mediaUrl, mediaTitle):
     try:
@@ -43,7 +44,7 @@ def load_tropes(dbconnection):
     all_tropes = dbcursor.fetchall()
     return all_tropes
 
-def initialiseDB():
+def initialise_db():
     # Connect to DB
     if os.path.isfile('TropeStats.db'):
         connection = sqlite3.connect('TropeStats.db')
