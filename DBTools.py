@@ -2,14 +2,14 @@ import sqlite3
 
 def add_media(dbconnection, mediaKey, mediaUrl, mediaTitle):
     try:
-        dbconnection.execute("INSERT INTO Media VALUES (?, ?, ?)", (mediaKey, mediaUrl, mediaTitle))
+        dbconnection.execute("INSERT INTO Media VALUES (?, ?, ?, date('now'))", (mediaKey, mediaUrl, mediaTitle))
     except sqlite3.IntegrityError:
         print "Attempted to add media page ", mediaKey, " twice: ", mediaUrl
     return
 
 def add_trope(dbconnection, tropeKey, tropeUrl, tropeTitle):
     try:
-        dbconnection.execute("INSERT INTO Tropes VALUES (?, ?, ?)", (tropeKey, tropeUrl, tropeTitle))
+        dbconnection.execute("INSERT INTO Tropes VALUES (?, ?, ?, date('now'))", (tropeKey, tropeUrl, tropeTitle))
     except sqlite3.IntegrityError:
         print "Attempted to add media page ", tropeKey, " twice: ", tropeUrl
     return
@@ -31,13 +31,15 @@ def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
 
 def load_media(dbconnection):
     dbcursor = dbconnection.cursor()
-    dbcursor.execute("SELECT MediaName FROM Media")
+    # Find all media for which the last visit less than 7 days from now
+    dbcursor.execute("SELECT MediaName FROM Media WHERE date(LastVisited) BETWEEN date('now', '-7 days') AND date('now')")
     all_media = dbcursor.fetchall()
     return all_media
 
 def load_tropes(dbconnection):
     dbcursor = dbconnection.cursor()
-    dbcursor.execute("SELECT TropeName FROM Tropes")
+    # Find all tropes for which the last visit less than 7 days from now
+    dbcursor.execute("SELECT TropeName FROM Tropes WHERE date(LastVisited) BETWEEN date('now', '-7 days') AND date('now')")
     all_tropes = dbcursor.fetchall()
     return all_tropes
 
@@ -56,11 +58,13 @@ def initialiseDB():
                         (MediaName text NOT NULL,
                          MediaUrl text,
                          MediaTitle text,
+                         LastVisited text,
                          CONSTRAINT PK_Name PRIMARY KEY(MediaName))''')
         cursor.execute('''CREATE TABLE Tropes
                        (TropeName text NOT NULL,
                         TropeUrl text,
                         TropeTitle text,
+                        LastVisited text,
                         CONSTRAINT PK_Trope PRIMARY KEY(TropeName))''')
         cursor.execute('''CREATE TABLE MediaTropes
                        (Media text NOT NULL, 
