@@ -27,15 +27,15 @@ def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
         except sqlite3.IntegrityError:
             print "Tried to add a relation that already exists but SELECT didn't find.  What is going on?"
             print pageKey, '\t', tropeKey
-     return
+    return
 
-def load_media(dbconnection)
+def load_media(dbconnection):
     dbcursor = dbconnection.cursor()
     dbcursor.execute("SELECT MediaName FROM Media")
     all_media = dbcursor.fetchall()
     return all_media
 
-def load_tropes(dbconnection)
+def load_tropes(dbconnection):
     dbcursor = dbconnection.cursor()
     dbcursor.execute("SELECT TropeName FROM Tropes")
     all_tropes = dbcursor.fetchall()
