@@ -1,6 +1,8 @@
 import sqlite3
 import os.path
 
+# Add Media to Media List
+# Doesn't commit straight away - Media should only be in here if it's finished parsing
 def add_media(dbconnection, mediaKey, mediaUrl, mediaTitle):
     try:
         dbconnection.execute("INSERT INTO Media VALUES (?, ?, ?, date('now'))", (mediaKey, mediaUrl, mediaTitle))
@@ -8,6 +10,8 @@ def add_media(dbconnection, mediaKey, mediaUrl, mediaTitle):
         print "Attempted to add media page ", mediaKey, " twice: ", mediaUrl
     return
 
+# Add Trope to Trope List
+# Doesn't commit straight away - Media should only be in here if it's finished parsing
 def add_trope(dbconnection, tropeKey, tropeUrl, tropeTitle):
     try:
         dbconnection.execute("INSERT INTO Tropes VALUES (?, ?, ?, date('now'))", (tropeKey, tropeUrl, tropeTitle))
@@ -15,6 +19,9 @@ def add_trope(dbconnection, tropeKey, tropeUrl, tropeTitle):
         print "Attempted to add media page ", tropeKey, " twice: ", tropeUrl
     return
 
+# Add link between Media and Trope
+# Direction shows if the link is bidirectional (0) or directed (-1 Trope->Media, +1 Media->Trope)
+# Doesn't commit straight away - Media should only be in here if it's finished parsing
 def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
     dbcursor = dbconnection.cursor()
     dbcursor.execute("SELECT * FROM MediaTropes WHERE Media=? AND Trope=?", (mediaKey, tropeKey))
@@ -71,20 +78,22 @@ def get_redirects(dbconnection):
     redirects = dbcursor.fetchall()
     return redirects
 
-def load_media(dbconnection):
+# Get a list of media or tropes that is at least a week old
+def get_oldmedia(dbconnection):
     dbcursor = dbconnection.cursor()
     # Find all media for which the last visit less than 7 days from now
     dbcursor.execute("SELECT MediaName FROM Media WHERE date(LastVisited) BETWEEN date('now', '-7 days') AND date('now')")
     all_media = dbcursor.fetchall()
     return all_media
 
-def load_tropes(dbconnection):
+def get_oldtropes(dbconnection):
     dbcursor = dbconnection.cursor()
     # Find all tropes for which the last visit less than 7 days from now
     dbcursor.execute("SELECT TropeName FROM Tropes WHERE date(LastVisited) BETWEEN date('now', '-7 days') AND date('now')")
     all_tropes = dbcursor.fetchall()
     return all_tropes
 
+# Connect to DB or create it if no DB is found
 def initialise_db():
     # Connect to DB
     if os.path.isfile('TropeStats.db'):
