@@ -30,28 +30,46 @@ def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
             print pageKey, '\t', tropeKey
     return
 
-def add_url(dbconnection, url)
+# Save a new url we've found
+# Commited straight away, no issue if calling script crashes mid-parse
+def add_url(dbconnection, url, redirect = None)
+    if not redirect:
+        redirect = url
     try:
         with dbconnection:
-            dbconnection.execute("INSERT INTO SiteChecklist VALUES (?, 0)", (url))
+            dbconnection.execute("INSERT INTO SiteChecklist VALUES (?, ?, 0)", (url, redirect))
     except sqlite3.IntegrityError:
         print "Tried to add a url that already exists"
         print url
     return
 
+# Save that we've checked a given Url
+# Wait until the calling script wants to commit
+# Update based on Redirect as we may need to change several entries
 def checked_url(dbconnection, url)
     try:
-        with dbconnection:
-            dbconnection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Url=?", (url))
+            dbconnection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Redirect=?", (url))
     return
 
-def get_Urls(dbconnection)
+# Return a list of unvisited Urls to visit and a list of visited Urls to avoid
+# Visited Urls should include both urls and any redirects
+def get_urls(dbconnection)
     dbcursor = dbconnection.cursor()
     dbcursor.execute("SELECT Url FROM UrlChecklist WHERE Visited=0")
     newUrls = dbcursor.fetchall()
     dbcursor.execute("SELECT Url FROM UrlChecklist WHERE Visited=1")
     oldUrls = dbcursor.fetchall()
+    dbcursor.execute("SELECT Redirect FROM UrlChecklist WHERE Url != Redirect")
+    oldUrls += dbcursor.fetchall()
     return newUrls, oldUrls
+
+# Return a list of tuples (url, redirect)
+# Useful to avoid testing a url we already know redirects to something else
+def get_redirects(dbconnection):
+    dbcursor = dbconnection.cursor()
+    dbcursor.execute("SELECT Url, Redirect FROM UrlChecklist")
+    redirects = dbcursor.fetchall()
+    return redirects
 
 def load_media(dbconnection):
     dbcursor = dbconnection.cursor()
@@ -98,6 +116,7 @@ def initialise_db():
                         CONSTRAINT PK_MediaTrope PRIMARY KEY(Media,Trope))''')
         cursor.execute('''CREATE TABLE UrlChecklist
                         (Url text NOT NULL,
+                         Redirect text,
                          Visited int,
                          CONSTRAINT PK_Url PRIMARY KEY(Url))''')
 
