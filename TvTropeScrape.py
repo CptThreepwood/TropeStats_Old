@@ -118,6 +118,24 @@ tvtropes_base = "tvtropes.org"
 tvtropes_main = "http://tvtropes.org"
 tvtropes_tropeindex = tvtropes_main + "/pmwiki/pmwiki.php/Main/Tropes"
 
+def test_redirect(url):
+    # Remove Tvtropes redirect tag
+    redirectIndex = url.rfind("?from=") 
+    if redirectIndex > 0:
+        url = url[0:redirectIndex]
+    if url in known_redirects:
+        finalURL = known_redirects[url]
+    else:
+        req = urllib2.Request(url)
+        res = urllib2.urlopen(req)
+        finalURL = res.geturl()
+        # Remove Tvtropes redirect tag
+        redirectIndex = finalURL.rfind("?from=") 
+        if redirectIndex > 0:
+            finalURL = finalURL[0:redirectIndex]
+        known_redirects[url] = finalURL
+    return finalURL
+
 def parse_page(url, options = None):
     global dbcursor
     global dbconnection
@@ -206,25 +224,19 @@ def parse_page(url, options = None):
         links = item.find_all('a')
         link = None
         entryInfo = None
+        initialUrl = None
+        finalUrl = None
         for testlink in links:
-            finalURL = None
+            initialUrl = testlink['href']
+            finalUrl = None
             # Save some time not bothering to follow external links
             if tvtropes_base not in testlink['href']:
                 continue
-            if testlink['href'] in known_redirects:
-                finalURL = known_redirects[testlink['href']]
-            else:
-                req = urllib2.Request(testlink['href'])
-                res = urllib2.urlopen(req)
-                finalURL = res.geturl()
-                known_redirects[testlink['href']] = finalURL
-            if not finalURL:
+            finalUrl = test_redirect(testlink['href']) 
+            
+            # Redirect unresolved
+            if not finalUrl:
                 continue
-
-            entryInfo = finalURL.split('/')
-            redirectIndex = entryInfo[-1].rfind("?from=") 
-            if redirectIndex > 0:
-                entryInfo[-1] = entryInfo[-1][0:redirectIndex]
             # Not sure if a tvtropes link will ever redirect somewhere else, but let's be safe
             if tvtropes_base not in testlink['href']:
                 continue
@@ -233,9 +245,11 @@ def parse_page(url, options = None):
                 link = testlink
                 break
 
-        # Verify we have a link and Skip external links
+        # Verify we have a link
         if not link:
             continue
+        
+        entryInfo = finalUrl.split('/')
         entryKey = entryInfo[-2] + '/' + entryInfo[-1]
        
         # Assign results to appropriate dictionary
@@ -329,12 +343,11 @@ def recur_search(url):
         sys.exit()
 
     counter = counter + 1
-    if url in known_redirects:
-        url = known_redirects[url]
-    redirectIndex = url.rfind("?from=") 
-    if redirectIndex > 0:
-        url = url[0:redirectIndex]
-    urlComponents = url.split('/')
+    print url
+    finalUrl = test_redirect(url)
+    
+    
+    urlComponents = finalUrl.split('/')
     pageTitle = urlComponents[-1]
     pageType = urlComponents[-2]
 
