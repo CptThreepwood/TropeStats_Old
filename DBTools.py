@@ -51,11 +51,20 @@ def add_url(dbconnection, url, redirect = None):
     return
 
 # Save that we've checked a given Url
-# Wait until the calling script wants to commit
+# Commit immediately - maybe unintuitive
 # Update based on Redirect as we may need to change several entries
-def checked_url(dbconnection, url)
+def checked_url(dbconnection, url):
+    print "Visited ", url
     try:
-            dbconnection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Redirect=?", (url))
+        with dbconnection:
+            dbconnection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Redirect=?", (url,))
+    except KeyboardInterrupt:
+        print "Url update failed"
+    return
+
+def commit_page(dbconnection, url):
+    dbconnection.commit()
+    checked_url(dbconnection, url)
     return
 
 # Return a list of unvisited Urls to visit and a list of visited Urls to avoid
