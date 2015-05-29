@@ -39,12 +39,12 @@ def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
 
 # Save a new url we've found
 # Commited straight away, no issue if calling script crashes mid-parse
-def add_url(dbconnection, url, redirect = None)
+def add_url(dbconnection, url, redirect = None):
     if not redirect:
         redirect = url
     try:
         with dbconnection:
-            dbconnection.execute("INSERT INTO SiteChecklist VALUES (?, ?, 0)", (url, redirect))
+            dbconnection.execute("INSERT INTO UrlChecklist VALUES (?, ?, 0)", (url, redirect))
     except sqlite3.IntegrityError:
         print "Tried to add a url that already exists"
         print url
@@ -60,7 +60,7 @@ def checked_url(dbconnection, url)
 
 # Return a list of unvisited Urls to visit and a list of visited Urls to avoid
 # Visited Urls should include both urls and any redirects
-def get_urls(dbconnection)
+def get_urls(dbconnection):
     dbcursor = dbconnection.cursor()
     dbcursor.execute("SELECT Url FROM UrlChecklist WHERE Visited=0")
     newUrls = dbcursor.fetchall()
