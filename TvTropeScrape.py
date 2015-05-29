@@ -256,16 +256,16 @@ def parse_page(url, options = None):
         if thisPage == "media":
             # Save tropes associated to this media, check their urls
             if 'main' in entryInfo[-2].lower():
-                tropeKey = link['href'].split('/')[-1]
+                tropeKey = finalUrl.split('/')[-1]
                 media[pageKey]['tropes'].add(tropeKey)
                 add_relation(dbconnection, pageKey, tropeKey, 1, 1)
                 # Add link to link database
                 if initialUrl not in new_urls and initialUrl not in urls_visited:
-                    new_urls.append(link['href'])
+                    new_urls.append(initialUrl)
                     add_url(dbconnection, initialUrl, finalUrl)
             # We've got a bunch of sub-pages for this media
             elif entryInfo[-2] == pageTitle and "Tropes" in entryInfo[-1]:
-                parse_page(link['href'], {"MediaSubPage" : pageKey})
+                parse_page(finalUrl, {"MediaSubPage" : pageKey})
         elif thisPage == "supertrope" or thisPage == "trope":
             # Save media associated to trope, check their urls
             if any(media in entryInfo[-2].lower() for media in allowedMedia):
@@ -273,21 +273,21 @@ def parse_page(url, options = None):
                 add_relation(dbconnection, entryKey, pageTitle, 1, -1)
                 # Add link to link database
                 if initialUrl not in new_urls and initialUrl not in urls_visited:
-                    new_urls.append(link['href'])
+                    new_urls.append(finalUrl)
                     add_url(dbconnection, initialUrl, finalUrl)
             # If this is a super-trope page, let's go explore the sub-tropes
             elif 'main' in entryInfo[-2].lower():
                 # Add link to link database
                 if initialUrl not in new_urls and initialUrl not in urls_visited:
-                    new_urls.append(link['href'])
+                    new_urls.append(finalUrl)
                     add_url(dbconnection, initialUrl, finalUrl)
             # This trope media have been split into types, go explore them all now
             elif any(media in entryInfo[-1].lower() for media in allowedMedia):
-                parse_page(link['href'])
+                parse_page(finalUrl)
             else:
                 print entryInfo[-1]
                 print entryInfo[-2]
-                print "Not currently considering: ", link['href']
+                print "Not currently considering: ", finalUrl
 
     # Map out related pages
     doRelated = True
