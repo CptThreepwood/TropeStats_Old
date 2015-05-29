@@ -16,7 +16,7 @@ class SetEncoder(json.JSONEncoder):
 import sqlite3
 
 counter = 0
-limit = 40
+limit = 5 
 
 DatabaseName = "TropeStats.db"
 dbconnection = None
@@ -330,8 +330,11 @@ def parse_page(url, options = None):
     return
 
 # Recurse through all links found
-def recur_search(url):
+def recur_search(url = None):
     global counter
+    if not url:
+        url = new_urls.popleft()
+    
     if limit != -1 and counter >= limit:
         print "Exceeded limit"
         outJSON.write('Media\n\n')
@@ -343,9 +346,7 @@ def recur_search(url):
         sys.exit()
 
     counter = counter + 1
-    print url
     finalUrl = test_redirect(url)
-    
     
     urlComponents = finalUrl.split('/')
     pageTitle = urlComponents[-1]
@@ -424,7 +425,12 @@ if __name__ == "__main__":
     #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/ActionGirl/AnimatedFilms") 
     
     # Recursive search test
-    recur_search("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury")
+    testUrl = "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury"
+    if new_urls:
+        recur_search()
+    else:
+        add_url(dbconnection, testUrl)
+        recur_search(testUrl)
 
     dbconnection.commit()
     dbconnection.close()
