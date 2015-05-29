@@ -37,7 +37,14 @@ def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
             print pageKey, '\t', tropeKey
     return
 
-# Save a new url we've found
+def add_index(dbconnection, child, parent):
+    try:
+        dbconnection.execute("INSERT INTO ParentIndicies VALUES (?, ?)", (child, parent))
+    except sqlite3.IntegrityError:
+        print "Index ", parent, " already stored for ", child
+    return
+
+# Save a new url we've 
 # Commited straight away, no issue if calling script crashes mid-parse
 def add_url(dbconnection, url, redirect = None):
     if not redirect:
@@ -137,6 +144,10 @@ def initialise_db():
                          Redirect text,
                          Visited int,
                          CONSTRAINT PK_Url PRIMARY KEY(Url))''')
+        cursor.execute('''CREATE TABLE ParentIndicies
+                       (Child text NOT NULL, 
+                        Parent text NOT NULL, 
+                        CONSTRAINT PK_MediaTrope PRIMARY KEY(Child,Parent))''')
 
         connection.commit()
         return connection
