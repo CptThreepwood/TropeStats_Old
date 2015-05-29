@@ -266,6 +266,12 @@ def parse_page(url, options = None):
             # We've got a bunch of sub-pages for this media
             elif entryInfo[-2] == pageTitle and "Tropes" in entryInfo[-1]:
                 parse_page(finalUrl, {"MediaSubPage" : pageKey})
+            # Franchise pages sometimes just link to each media subpage
+            # In this case we should investigate each of those links, but not associate them to the Franchise page
+            elif pageType == "Franchise" and any(media in entryInfo[-2].lower() for media in allowedMedia):
+                if initalUrl not in newUrls and initialUrl not in urls_visited:
+                    new_urls.append(initialUrl)
+                    add_url(dbconnection, initialUrl, finalUrl)
         elif thisPage == "supertrope" or thisPage == "trope":
             # Save media associated to trope, check their urls
             if any(media in entryInfo[-2].lower() for media in allowedMedia):
