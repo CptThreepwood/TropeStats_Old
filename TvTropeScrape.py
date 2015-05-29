@@ -22,11 +22,12 @@ DatabaseName = "TropeStats.db"
 dbconnection = None
 dbcursor = None
 
-newURLs = deque()
+new_urls = deque()
 known_redirects = {}
-tropes_visited = set()
 tropes = {}
-media_visited = set()
+
+urls_visited = set()
+
 media = {}
 allowedMedia = [
     'anime',
@@ -227,6 +228,7 @@ def parse_page(url, options = None):
             # Not sure if a tvtropes link will ever redirect somewhere else, but let's be safe
             if tvtropes_base not in testlink['href']:
                 continue
+            # Found the first link worth following
             else:
                 link = testlink
                 break
@@ -243,8 +245,10 @@ def parse_page(url, options = None):
                 tropeKey = link['href'].split('/')[-1]
                 media[pageKey]['tropes'].add(tropeKey)
                 add_relation(dbconnection, pageKey, tropeKey, 1, 1)
-                if link.string not in tropes_visited:
-                    newURLs.append(link['href'])
+                # Add link to link database
+                if initialUrl not in new_urls and initialUrl not in urls_visited:
+                    new_urls.append(link['href'])
+                    add_url(dbconnection, initialUrl, finalUrl)
             # We've got a bunch of sub-pages for this media
             elif entryInfo[-2] == pageTitle and "Tropes" in entryInfo[-1]:
                 parse_page(link['href'], {"MediaSubPage" : pageKey})
@@ -253,13 +257,16 @@ def parse_page(url, options = None):
             if any(media in entryInfo[-2].lower() for media in allowedMedia):
                 tropes[pageTitle]['media'].add(entryKey)
                 add_relation(dbconnection, entryKey, pageTitle, 1, -1)
-                if entryInfo[-1] not in media_visited:
-                    newURLs.append(link['href'])
+                # Add link to link database
+                if initialUrl not in new_urls and initialUrl not in urls_visited:
+                    new_urls.append(link['href'])
+                    add_url(dbconnection, initialUrl, finalUrl)
             # If this is a super-trope page, let's go explore the sub-tropes
             elif 'main' in entryInfo[-2].lower():
-                # SuperTrope trope sub-pages 
-                if 'main' in entryInfo[-2].lower():
-                    newURLs.append(link['href'])
+                # Add link to link database
+                if initialUrl not in new_urls and initialUrl not in urls_visited:
+                    new_urls.append(link['href'])
+                    add_url(dbconnection, initialUrl, finalUrl)
             # This trope media have been split into types, go explore them all now
             elif any(media in entryInfo[-1].lower() for media in allowedMedia):
                 parse_page(link['href'])
@@ -284,8 +291,8 @@ def parse_page(url, options = None):
             subsequent = items[2].find('a')
             if previous:
                 previousType = previous['href'].split('/')[-2]
-                if previous.string not in tropes_visited and previous.string not in media_visited and previousType.lower() not in ignoredTypes:
-                    newURLs.append(tvtropes_main + previous['href'])
+                if previous.string not in urls_visited and previousType.lower() not in ignoredTypes:
+                    new_urls.append(tvtropes_main + previous['href'])
             if current:
                 currentComponents = current['href'].split('/')
                 currentType = currentComponents[-2]
@@ -296,17 +303,16 @@ def parse_page(url, options = None):
                             media[pageKey]['indicies'].append(current.string)
                         else:
                             tropes[pageTitle]['indicies'].append(current.string)
-                    if current.string not in tropes_visited and current.string not in media_visited:
-                        newURLs.append(tvtropes_main + current['href'])
+                    if current.string not in urls_visited:
+                        new_urls.append(tvtropes_main + current['href'])
             if subsequent:    
                 subsequentType = subsequent['href'].split('/')[-2]
-                if subsequent.string not in tropes_visited and subsequent.string not in media_visited and subsequentType.lower() not in ignoredTypes:
-                    newURLs.append(tvtropes_main + subsequent['href'])
+                if subsequent.string not in urls_visited and subsequentType.lower() not in ignoredTypes:
+                    new_urls.append(tvtropes_main + subsequent['href'])
    
     # Done Parsing, add to DB
-
-    dbconnection.commit()
-
+    urls_visited.add(url)
+    commit_page(dbconnection, url)
     return
 
 # Recurse through all links found
@@ -342,23 +348,17 @@ def recur_search(url):
         print "Link to uninteresting page ignored"
         return
     # Ignore links already searched
-    if pageTitle in tropes_visited or pageTitle in media_visited:
+    if finalUrl in urls_visited:
         print "Link already discovered"
         return
 
     print pageTitle + ": " + pageType
 
-    # This URL is for media
-    if any(media in pageType.lower() for media in allowedMedia):
-        media_visited.add(pageTitle)
-    # This URL is for a trope or superTrope
-    else:
-        tropes_visited.add(pageTitle)
-    parse_page(url)
+    parse_page(finalUrl)
 
     # Recurse this search through all untested urls
-    if newURLs:
-        recur_search(newURLs.popleft())
+    if new_urls:
+        recur_search(new_urls.popleft())
 
     return
 
@@ -391,11 +391,14 @@ if __name__ == "__main__":
     dbconnection = initialise_db() 
     dbcursor = dbconnection.cursor()
    
-    media_visited.update(load_media(dbconnection))
-    tropes_visited.update(load_tropes(dbconnection))
-
-    print media_visited
-    print tropes_visited
+    unreadUrls, oldUrls = get_urls(dbconnection)
+    redirects = get_redirects(dbconnection)
+    for url in oldUrls:
+        urls_visited.add(url[0])
+    for url in unreadUrls:
+        new_urls.append(url[0])
+    for redirect in redirects:
+        known_redirects[redirect[0]] = redirect[1]
 
     # Trope parsing test
     #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury") 
@@ -413,7 +416,7 @@ if __name__ == "__main__":
     dbconnection.commit()
     dbconnection.close()
 #    print "URLS TO VISIT"
-#    for URL in newURLs:
+#    for URL in new_urls:
 #        print URL
 #    print
 #    print "MEDIA INDEX:"
@@ -424,11 +427,8 @@ if __name__ == "__main__":
 #    print json.dumps(tropes, cls=SetEncoder)
 #    json.dump(tropes, outJSON, indent = 4, cls=SetEncoder)
 #    print
-#    print "MEDIA VISITED:"
-#    print media_visited
-#    print
-#    print "TROPES VISITED:"
-#    print tropes_visited
+#    print "URLS VISITED:"
+#    print urls_visited
 #    print
 #    print "KNOWN REDIRECTS:"
 #    for redirect in known_redirects:
