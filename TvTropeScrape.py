@@ -136,36 +136,36 @@ def test_redirect(url):
         known_redirects[url] = finalURL
     return finalURL
 
+def identify_url(url):
+    urlComponents = url.split('/')
+    
+    if any(media in urlComponents[-2].lower() for media in allowedMedia):
+        pageType = "media"
+        pageKey = urlComponents[-2] + '/' + urlComponents[-1]
+    elif "main" in urlComponents[-2].lower():
+        pageType = "trope"
+        pageKey = urlComponents[-1]
+    elif any(category in urlComponents[-2].lower() for category in ignoredTypes):
+        pageType = urlComponents[-2]
+        pageKey = urlComponents[-2] + '/' + urlComponents[-1]
+    else:
+        pageType = "supertrope"
+        pageKey = urlComponents[-2]
+    return pageType, pageKey
+
 def parse_page(url, options = None):
     global dbcursor
     global dbconnection
     
-    # Try and work out info from url
-    urlComponents = url.split('/')
-    pageTitle = urlComponents[-1]
-    pageType = urlComponents[-2]
-    pageKey = pageType + '/' + pageTitle
-    
     # Load Page
     html = BeautifulSoup(urllib.urlopen(url))
 
-    thisPage = None
-    # Super trope subpage catching
-    if any(media in pageType.lower() for media in allowedMedia):
-        thisPage = "media"
-    elif "main" in pageType.lower():
-        thisPage = "trope"
-    else:
-        thisPage = "supertrope"
-        pageTitle = pageType
-    if not thisPage:
-        print "Unrecognized Page Type: ", url
-        return
-
+    # Try and work out info from url
+    pageType, pageKey = identify_url(url)
     if options:
         for key in options:
             if key == "MediaSubPage":
-                thisPage = "media"
+                pageType = "media"
                 pageKey = options[key]
 
     # Find text block
@@ -177,7 +177,7 @@ def parse_page(url, options = None):
         return
 
     # Save this media page information
-    if thisPage == "media":
+    if pageType == "media":
         if pageKey not in media:
             print "Creating New Media Entry"
             media[pageKey] = {}
@@ -187,27 +187,27 @@ def parse_page(url, options = None):
             media[pageKey]['indicies'] = []
             add_media(dbconnection, pageKey, url, html.find('title').string.replace(" - TV Tropes", ""))
     # Save this trope page information
-    elif thisPage == "trope":
-        if pageTitle not in tropes:
+    elif pageType == "trope":
+        if pageKey not in tropes:
             print "Creating New Trope Entry"
-            tropes[pageTitle] = {}
-            tropes[pageTitle]['media'] = set()
-            tropes[pageTitle]['url'] = url
-            tropes[pageTitle]['title'] = html.find('title').string.replace(" - TV Tropes", "")
-            tropes[pageTitle]['indicies'] = []
-            add_trope(dbconnection, pageTitle, url, html.find('title').string.replace(" - TV Tropes", ""))
+            tropes[pageKey] = {}
+            tropes[pageKey]['media'] = set()
+            tropes[pageKey]['url'] = url
+            tropes[pageKey]['title'] = html.find('title').string.replace(" - TV Tropes", "")
+            tropes[pageKey]['indicies'] = []
+            add_trope(dbconnection, pageKey, url, html.find('title').string.replace(" - TV Tropes", ""))
         # We're visiting a top page after visiting subpages
-        if 'url' not in tropes[pageTitle]:
+        if 'url' not in tropes[pageKey]:
             print "Creating New SuperTrope Entry"
-            tropes[pageTitle]['url'] = url
-            add_trope(dbconnection, pageTitle, url, tropes[pageTitle]['title'])
+            tropes[pageKey]['url'] = url
+            add_trope(dbconnection, pageKey, url, tropes[pageKey]['title'])
     # Sub-page, don't add to db (we'll do it when we get to the top page)
-    elif pageTitle not in tropes:
+    elif pageKey not in tropes:
         print "Not Creating an Entry - SubTrope"
-        tropes[pageTitle] = {}
-        tropes[pageTitle]['media'] = set()
-        tropes[pageTitle]['title'] = html.find('title').string.replace(" - TV Tropes", "").split('/')[-1].strip()
-        tropes[pageTitle]['indicies'] = []
+        tropes[pageKey] = {}
+        tropes[pageKey]['media'] = set()
+        tropes[pageKey]['title'] = html.find('title').string.replace(" - TV Tropes", "").split('/')[-1].strip()
+        tropes[pageKey]['indicies'] = []
         
     # There are some examples - Let's go find them    
     items = textblock.find_all('li')
@@ -253,8 +253,8 @@ def parse_page(url, options = None):
         entryKey = entryInfo[-2] + '/' + entryInfo[-1]
        
         # Assign results to appropriate dictionary
-        if thisPage == "media":
-            # Save tropes associated to this media, check their urls
+        # Save tropes associated to this media, check their urls
+        if pageType == "media":
             if 'main' in entryInfo[-2].lower():
                 tropeKey = finalUrl.split('/')[-1]
                 media[pageKey]['tropes'].add(tropeKey)
@@ -264,7 +264,7 @@ def parse_page(url, options = None):
                     new_urls.append(initialUrl)
                     add_url(dbconnection, initialUrl, finalUrl)
             # We've got a bunch of sub-pages for this media
-            elif entryInfo[-2] == pageTitle and "Tropes" in entryInfo[-1]:
+            elif entryInfo[-2] == pageKey and "Tropes" in entryInfo[-1]:
                 parse_page(finalUrl, {"MediaSubPage" : pageKey})
             # Franchise pages sometimes just link to each media subpage
             # In this case we should investigate each of those links, but not associate them to the Franchise page
@@ -272,11 +272,11 @@ def parse_page(url, options = None):
                 if initalUrl not in newUrls and initialUrl not in urls_visited:
                     new_urls.append(initialUrl)
                     add_url(dbconnection, initialUrl, finalUrl)
-        elif thisPage == "supertrope" or thisPage == "trope":
-            # Save media associated to trope, check their urls
+        # Save media associated to trope, check their urls
+        elif pageType == "supertrope" or pageType == "trope":
             if any(media in entryInfo[-2].lower() for media in allowedMedia):
-                tropes[pageTitle]['media'].add(entryKey)
-                add_relation(dbconnection, entryKey, pageTitle, 1, -1)
+                tropes[pageKey]['media'].add(entryKey)
+                add_relation(dbconnection, entryKey, pageKey, 1, -1)
                 # Add link to link database
                 if initialUrl not in new_urls and initialUrl not in urls_visited:
                     new_urls.append(finalUrl)
@@ -310,25 +310,29 @@ def parse_page(url, options = None):
             current = items[1].find('a')
             subsequent = items[2].find('a')
             if previous:
-                previousType = previous['href'].split('/')[-2]
-                if previous.string not in urls_visited and previousType.lower() not in ignoredTypes:
-                    new_urls.append(tvtropes_main + previous['href'])
+                previousUrl = test_redirect(tvtropes_main + previous['href'])
+                previousType, previousKey = identify_url(previousUrl)
+                if previousUrl not in urls_visited and previousUrl not in new_urls and previousType.lower() not in ignoredTypes:
+                    new_urls.append(previousUrl)
+                    add_url(dbconnection, tvtropes_main + previous['href'], previousUrl)
             if current:
-                currentComponents = current['href'].split('/')
-                currentType = currentComponents[-2]
-                currentTitle = currentComponents[-1]
+                currentUrl = test_redirect(tvtropes_main + current['href'])
+                currentType, currentKey = identify_url(currentUrl)
                 if currentType.lower() not in ignoredTypes:
-                    if pageTitle != currentTitle:
-                        if thisPage == "media":
+                    if pageKey != currentKey:
+                        add_index(dbconnection, pageKey, currentKey)
+                        if pageType == "media":
                             media[pageKey]['indicies'].append(current.string)
                         else:
-                            tropes[pageTitle]['indicies'].append(current.string)
-                    if current.string not in urls_visited:
+                            tropes[pageKey]['indicies'].append(current.string)
+                    if currentUrl not in urls_visited and currentUrl not in new_urls:
                         new_urls.append(tvtropes_main + current['href'])
             if subsequent:    
-                subsequentType = subsequent['href'].split('/')[-2]
-                if subsequent.string not in urls_visited and subsequentType.lower() not in ignoredTypes:
+                subsequentUrl = test_redirect(tvtropes_main + subsequent['href'])
+                subsequentType, subsequentKey = identify_url(subsequentUrl)
+                if subsequentUrl not in urls_visited and subsequentUrl not in new_urls and subsequentType.lower() not in ignoredTypes:
                     new_urls.append(tvtropes_main + subsequent['href'])
+                    add_url(dbconnection, tvtropes_main + subsequent['href'], subsequentUrl)
    
     # Done Parsing, add to DB
     urls_visited.add(url)
