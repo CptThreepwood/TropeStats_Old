@@ -34,6 +34,7 @@ allowedMedia = [
     'comicbook',
     'comics',
     'comicstrip',
+    'creator',
     'discworld',
     'disney',               # Apparently big enough to be it's own type of media.  Who knew?
     'fanfic',
@@ -78,6 +79,8 @@ ignoredTypes = [
     'awesomebosses', 'awesomebutimpractical', 'awesomemusic', 'badass', 'betterthanitsounds', 'fetishfuel', 'fridge', 'fridgebrilliance', 'fridgehorror', 
     'funny', 'headscratchers', 'highoctanenightmarefuel', 'horrible', 'narm', 'nightmarefuel', 'shockingelimination', 'thatoneboss',
     'thescrappy', 'whatanidiot', 'ymmv',
+
+    # Ignored types that we may add in future
 
     # Ignore TVtropes pages not relevant to project
     'administrivia', 'charactersheets', 'characters', 'community', 'cowboybebopathiscomputer', 'creatorkiller', 'crimeandpunishmentseries', 
