@@ -37,6 +37,7 @@ known_aliases = {
 
 allowedMedia = [
     'anime',
+    'animation',
     'comicbook',
     'comics',
     'comicstrip',
