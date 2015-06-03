@@ -1,5 +1,8 @@
 import sqlite3
 import os.path
+import logging
+
+logging.basicConfig(filename = 'scrape.log', level = logging.INFO, filemode = "w")
 
 # Add Media to Media List
 # Doesn't commit straight away - Media should only be in here if it's finished parsing
@@ -7,7 +10,7 @@ def add_media(dbconnection, mediaKey, mediaUrl, mediaTitle):
     try:
         dbconnection.execute("INSERT INTO Media VALUES (?, ?, ?, date('now'))", (mediaKey, mediaUrl, mediaTitle))
     except sqlite3.IntegrityError:
-        print "Attempted to add media page ", mediaKey, " twice: ", mediaUrl
+        logging.error("Attempted to add media page %s twice: %s", mediaKey, mediaUrl)
     return
 
 # Add Trope to Trope List
@@ -16,7 +19,7 @@ def add_trope(dbconnection, tropeKey, tropeUrl, tropeTitle):
     try:
         dbconnection.execute("INSERT INTO Tropes VALUES (?, ?, ?, date('now'))", (tropeKey, tropeUrl, tropeTitle))
     except sqlite3.IntegrityError:
-        print "Attempted to add media page ", tropeKey, " twice: ", tropeUrl
+        logging.error("Attempted to add media page %s twice: %s", tropeKey, tropeUrl)
     return
 
 # Add link between Media and Trope
@@ -33,15 +36,15 @@ def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
         try:
             dbcursor.execute("INSERT INTO MediaTropes VALUES (?, ?, ?, ?)", (mediaKey, tropeKey, strength, direction))
         except sqlite3.IntegrityError:
-            print "Tried to add a relation that already exists but SELECT didn't find.  What is going on?"
-            print pageKey, '\t', tropeKey
+            logging.error("Tried to add a relation that already exists but SELECT didn't find.  What is going on?")
+            logging.error("%s\t%s", pageKey, tropeKey)
     return
 
 def add_index(dbconnection, child, parent):
     try:
         dbconnection.execute("INSERT INTO ParentIndicies VALUES (?, ?)", (child, parent))
     except sqlite3.IntegrityError:
-        print "Index ", parent, " already stored for ", child
+        logging.error("Index %s already stored for %s", parent, child)
     return
 
 # Save a new url we've 
@@ -53,20 +56,19 @@ def add_url(dbconnection, url, redirect = None):
         with dbconnection:
             dbconnection.execute("INSERT INTO UrlChecklist VALUES (?, ?, 0)", (url, redirect))
     except sqlite3.IntegrityError:
-        print "Tried to add a url that already exists"
-        print url
+        logging.error("Tried to add a url that already exists\n%s", url)
     return
 
 # Save that we've checked a given Url
 # Commit immediately - maybe unintuitive
 # Update based on Redirect as we may need to change several entries
 def checked_url(dbconnection, url):
-    print "Finished ", url
+    logging.info("Finished %s", url)
     try:
         with dbconnection:
             dbconnection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Redirect=?", (url,))
     except KeyboardInterrupt:
-        print "Url update failed"
+        logging.error("Url update failed")
     return
 
 def commit_page(dbconnection, url):
