@@ -61,7 +61,7 @@ def add_url(dbconnection, url, redirect = None):
 # Commit immediately - maybe unintuitive
 # Update based on Redirect as we may need to change several entries
 def checked_url(dbconnection, url):
-    print "Visited ", url
+    print "Finished ", url
     try:
         with dbconnection:
             dbconnection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Redirect=?", (url,))

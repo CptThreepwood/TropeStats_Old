@@ -240,13 +240,6 @@ def parse_page(url, options = None):
     items = textblock.find_all('li')
     nSubTags = 0
     for item in items:
-        # Skip any 'li' nested within 'li'
-        if nSubTags > 0:
-            nSubTags -= 1
-            continue
-        else:
-            nSubTags = len(item.find_all('li'))
-        
         # Find the first relevant link in a line
         links = item.find_all('a')
         link = None
@@ -275,6 +268,15 @@ def parse_page(url, options = None):
             continue
         entryType, entryKey = identify_url(finalUrl, pageKey.split('/')[-1])
        
+        # Skip any 'li' nested within 'li'
+        # Only skip if they aren't subPages (thanks Buffy)
+        if nSubTags > 0:
+            nSubTags -= 1
+            if entryType != "mediaSubPage" and entryType != "tropeSubPage":
+                continue
+        else:
+            nSubTags = len(item.find_all('li'))
+        
         # Assign results to appropriate dictionary
         # Save tropes associated to this media, check their urls
         if pageType == "media":
