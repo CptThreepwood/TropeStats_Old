@@ -2,6 +2,7 @@ import urllib
 import urllib2
 import sys
 import re
+import logging
 from collections import deque
 from bs4 import BeautifulSoup
 
@@ -24,6 +25,9 @@ dbcursor = None
 new_urls = deque()
 known_redirects = {}
 urls_visited = set()
+
+logging.basicConfig(filename = 'scrape.log', level = logging.INFO, filemode = "w")
+logging.getLogger().addHandler(logging.StreamHandler())
 
 # Sometimes TvTropes doesn't refer to media with the right name
 # This is dumb and requires hacks.  Probably I should make this a config file.  Maybe later.
@@ -136,7 +140,7 @@ def test_redirect(url):
         req = urllib2.Request(url)
         try: res = urllib2.urlopen(req)
         except urllib2.HTTPError:
-            print url, " could not be found"
+            logging.error("%s could not be found", url)
         finalURL = res.geturl()
         # Remove Tvtropes redirect tag
         redirectIndex = finalURL.rfind("?from=") 
@@ -149,7 +153,7 @@ def identify_url(url, inputKey = None):
     urlComponents = url.split('/')
     # If we're ignoring this page type -> return None
     if any(category == urlComponents[-2].lower() for category in ignoredTypes):
-        print "Ignored Type: ", urlComponents[-2]
+        logging.info("Ignored Type: %s", urlComponents[-2])
         return None, None
     # If this is a media url -> return "media", type/name
     elif any(media == urlComponents[-2].lower() for media in allowedMedia):
@@ -168,8 +172,11 @@ def identify_url(url, inputKey = None):
         if urlComponents[-2] == known_aliases[inputKey] and "Tropes" in urlComponents[-1]:
             pageType = "mediaSubPage"
             pageKey = inputKey 
+        elif urlComponents[-2] == known_aliases[inputKey]:
+            logging.warning("Known Alias but not a Media SubPage: %s", url)
+            return None, None
         else:
-            print url
+            logging.warning("Unknown Page Type: %s", url)
             return None, None
     # If this is a trope sub-page -> return "tropeSubPage", tropeName
     elif urlComponents[-2] == inputKey and any(media in urlComponents[-1].lower() for media in allowedMedia):
@@ -182,8 +189,7 @@ def identify_url(url, inputKey = None):
     #    result = test_redirect(testUrl)
     #    print result
     else:
-        print "Unknown Url: ", url
-        print "On page: ", inputKey
+        logging.error("Unknown Url: %s\nOn page: \%", url, inputKey)
         return None, None
     return pageType, pageKey
 
@@ -214,16 +220,16 @@ def parse_page(url, options = None):
     
     # If there is no text block, give up
     if not textblock:
-        print url, " has no wikitext"
+        logging.error("%s has no wikitext", url)
         return 1
 
     # Save this page information
     # Fix this for the sub-page cases
     if options:
         if any(x in options for x in ["MediaSubPage","TropeSubPage"]):
-            print "Adding to Entry: ", pageKey
+            logging.info("%s\nAdding to Entry: %s", url, pageKey)
     elif url not in urls_visited:
-        print "Creating New Entry"
+        logging.info("Creating New Entry")
         if pageType == "media":
             add_media(dbconnection, pageKey, url, html.find('title').string.replace(" - TV Tropes", ""))
         if pageType == "trope":
@@ -375,11 +381,11 @@ def recur_search(url = None):
     
     # Don't follow external links
     if "tvtropes.org" not in url:
-        print "External Link Ignored"
+        logging.info("External Link Ignored: %s", url)
         return
 
     if limit != -1 and counter >= limit:
-        print "Exceeded limit"
+        logging.critical("Exceeded limit")
         dbconnection.commit()
         dbconnection.close()
         sys.exit()
@@ -387,18 +393,18 @@ def recur_search(url = None):
     counter = counter + 1
     finalUrl = test_redirect(url)
     pageType, pageTitle = identify_url(finalUrl)
-    print counter, ": ", finalUrl
+    logging.info("%s: %s", counter, finalUrl)
 
     # Ignore links with bad types
     if pageType in ignoredTypes:
-        print "Link to uninteresting page ignored"
+        logging.info("Link to unintersting page ignored")
         return
     # Ignore links already searched
     if finalUrl in urls_visited:
-        print "Link already discovered"
+        logging.info("Link already discovered")
         return
 
-    print pageTitle + ": " + pageType
+    logging.info("%s: %s", pageTitle, pageType)
 
     parse_page(finalUrl)
     # If parsing is successful, add any original url to urls_visited too
