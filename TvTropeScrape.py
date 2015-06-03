@@ -282,53 +282,49 @@ def parse_page(url, options = None):
         if pageType == "media":
             if entryType == "trope":
                 add_relation(dbconnection, pageKey, entryKey, 1, 1)
+            if finalUrl not in urls_visited:
                 # Add link to link database
-                if initialUrl not in new_urls and finalUrl not in urls_visited:
-                    new_urls.append(initialUrl)
-                    add_url(dbconnection, initialUrl, finalUrl)
-            # We've got a bunch of sub-pages for this media
-            elif entryType == "mediaSubPage":
+                if entryType == "trope":
+                    if initialUrl not in new_urls:
+                        new_urls.append(initialUrl)
+                        add_url(dbconnection, initialUrl, finalUrl)
+                # We've got a bunch of sub-pages for this media
                 # Immediately go get subpage information 
-                parse_page(finalUrl, {"MediaSubPage" : pageKey})
-            # Franchise pages sometimes just link to each media subpage
-            # In this case we should investigate each of those links, but not associate them to the Franchise page
-            elif pageKey.split('/')[0] == "Franchise" and entryType == "media":
-                # Add link to link database
-                if initialUrl not in new_urls and finalUrl not in urls_visited:
-                    new_urls.append(initialUrl)
-                    add_url(dbconnection, initialUrl, finalUrl)
-            elif entryType == "media" and initialUrl not in new_urls and initialUrl not in urls_visited:
-                new_urls.append(initialUrl)
-                add_url(dbconnection, initialUrl, finalUrl)
-            else:
-                print "Not currently considering: ", finalUrl
+                elif entryType == "mediaSubPage":
+                    parse_page(finalUrl, {"MediaSubPage" : pageKey})
+                # Franchise pages sometimes just link to each media subpage
+                # In this case we should investigate each of those links, but not associate them to the Franchise page
+                elif pageKey.split('/')[0] == "Franchise" and entryType == "media":
+                    # Add link to link database
+                    if initialUrl not in new_urls:
+                        new_urls.append(initialUrl)
+                        add_url(dbconnection, initialUrl, finalUrl)
+                elif entryType == "media":
+                    if initialUrl not in new_urls:
+                        new_urls.append(initialUrl)
+                        add_url(dbconnection, initialUrl, finalUrl)
+                else :
+                    logging.warning("Not currently considering: %s", finalUrl)
         # Save media associated to trope, check their urls
         elif pageType == "trope":
             if entryType == "media":
                 add_relation(dbconnection, entryKey, pageKey, 1, -1)
+            if finalUrl not in urls_visited:
                 # Add link to link database
-                if initialUrl not in new_urls and finalUrl not in urls_visited:
-                    test = add_url(dbconnection, initialUrl, finalUrl)
-                    if test == "Debug":
-                        print
-                        print initialUrl
-                        print finalUrl
-                        print
-                        print new_urls
-                        print urls_visited
-                        print
-                    new_urls.append(initialUrl)
-            # If this is a super-trope page, add tropes to list
-            elif entryType == "trope":
-                # Add link to link database
-                if initialUrl not in new_urls and finalUrl not in urls_visited:
-                    new_urls.append(initialUrl)
-                    add_url(dbconnection, initialUrl, finalUrl)
-            # This tropes media have been split into types, go explore them all now
-            elif entryType == "tropeSubPage":
-                parse_page(finalUrl, {"TropeSubPage" : pageKey})
-            else:
-                print "Not currently considering: ", finalUrl
+                if entryType == "media":
+                    if initialUrl not in new_urls:
+                        add_url(dbconnection, initialUrl, finalUrl)
+                        new_urls.append(initialUrl)
+                # If this is a super-trope page, add tropes to list
+                elif entryType == "trope":
+                    if initialUrl not in new_urls:
+                        new_urls.append(initialUrl)
+                        add_url(dbconnection, initialUrl, finalUrl)
+                # This tropes media have been split into types, go explore them all now
+                elif entryType == "tropeSubPage":
+                    parse_page(finalUrl, {"TropeSubPage" : pageKey})
+                else:
+                    logging.warning("Not currently considering: %s", finalUrl)
 
     # Map out related pages
     doRelated = True
