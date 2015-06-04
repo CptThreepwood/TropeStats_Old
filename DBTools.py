@@ -2,8 +2,6 @@ import sqlite3
 import os.path
 import logging
 
-logging.basicConfig(filename = 'scrape.log', level = logging.INFO, filemode = "w")
-
 # Add Media to Media List
 # Doesn't commit straight away - Media should only be in here if it's finished parsing
 def add_media(dbconnection, mediaKey, mediaUrl, mediaTitle):

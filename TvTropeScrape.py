@@ -2,9 +2,10 @@ import urllib
 import urllib2
 import sys
 import re
-import logging
 from collections import deque
 from bs4 import BeautifulSoup
+import logging
+import ColourStreamHandler
 
 from DBTools import *
 import json 
@@ -26,8 +27,21 @@ new_urls = deque()
 known_redirects = {}
 urls_visited = set()
 
-logging.basicConfig(filename = 'scrape.log', level = logging.INFO, filemode = "w")
-logging.getLogger().addHandler(logging.StreamHandler())
+f = open("Scrape.log", 'a')
+f.write('\n---------------------------------------------------------\n')
+f.close()
+
+logFormat = '[%(asctime)s] %(filename)-20s %(levelname)8s - %(message)s'
+consoleFormat = '%(filename)-20s %(levelname)8s : %(message)s'
+logging.basicConfig(format=logFormat, level=logging.DEBUG, filename='Scrape.log', filemode = 'a')
+
+#consoleOut = logging.StreamHandler()
+#consoleOut.setFormatter(logging.Formatter(consoleFormat))
+#logging.getLogger().addHandler(consoleOut)
+
+consoleOut = ColourStreamHandler.ColourStreamHandler
+consoleOut.setFormatter(logging.Formatter(consoleFormat))
+logging.getLogger().addHandler(consoleOut)
 
 # Sometimes TvTropes doesn't refer to media with the right name
 # This is dumb and requires hacks.  Probably I should make this a config file.  Maybe later.
@@ -398,10 +412,16 @@ def recur_search(url = None):
         dbconnection.close()
         sys.exit()
 
-    counter = counter + 1
     finalUrl = test_redirect(url)
+    if not finalUrl:
+        return
+    counter = counter + 1
     pageType, pageTitle = identify_url(finalUrl)
-    logging.info("%s: %s", counter, finalUrl)
+    # Code snippet to make ordinal numbers
+    # Taken from http://codegolf.stackexchange.com/questions/4707/outputting-ordinal-numbers-1st-2nd-3rd
+    ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
+    logging.info("Processing %s url", ordinal(counter))
+    logging.info("%s", finalUrl)
 
     # Ignore links with bad types
     if pageType in ignoredTypes:
