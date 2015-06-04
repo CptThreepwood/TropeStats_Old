@@ -373,7 +373,7 @@ def parse_page(url, options = None):
     doRelated = True
     if options:
         print options
-        if any(options == x for x in ["MediaSubPage","TropeSubPage"]):
+        if any(x in options for x in ["MediaSubPage","TropeSubPage"]):
             doRelated = False
 
     if doRelated:    
