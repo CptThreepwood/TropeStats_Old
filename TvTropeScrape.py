@@ -152,7 +152,9 @@ ignoredTypes = [
 
 tvtropes_base = "tvtropes.org"
 tvtropes_main = "http://tvtropes.org"
-tvtropes_tropeindex = tvtropes_main + "/pmwiki/pmwiki.php/Main/Tropes"
+tvtropes_page = tvtropes_main + "/pmwiki/pmwiki.php/"
+tvtropes_trope = tvtropes_page + "Main/"
+tvtropes_tropeindex = tvtropes_trope + "Tropes"
 
 def test_redirect(url):
     # Remove Tvtropes redirect tag
@@ -196,6 +198,10 @@ def identify_url(url, parentName = None):
         pageKey = urlName
 
     # Trickier Cases. SubPages where er have the parentName because we came from that page
+    # Ignored types for trope sub-pages
+    elif urlType == parentName and any(urlName.lower() == media for media in ignoredTypes):
+        logging.info("Ignored Type: %s", urlType)
+        return None, None
     # MediaSubPage Url is something like /MediaName/TropesAtoC
     # If this is a media sub-page -> return "mediaSubPage", mediaName
     elif urlType == parentName and re.search("[A-Za-z][tT]o[A-Za-z]$", urlName):
@@ -343,7 +349,7 @@ def parse_page(url, options = None):
                         new_urls.append(initialUrl)
                         add_url(dbconnection, initialUrl, finalUrl)
                 elif entryType == "media":
-                    if initialUrl not in new_urls:
+                    if initialUrl not in new_urls and finalUrl != tvtropes_page + pageKey:
                         new_urls.append(initialUrl)
                         add_url(dbconnection, initialUrl, finalUrl)
                 else :
@@ -360,7 +366,7 @@ def parse_page(url, options = None):
                         new_urls.append(initialUrl)
                 # If this is a super-trope page, add tropes to list
                 elif entryType == "trope":
-                    if initialUrl not in new_urls:
+                    if initialUrl not in new_urls and finalUrl != tvtropes_trope + pageKey:
                         new_urls.append(initialUrl)
                         add_url(dbconnection, initialUrl, finalUrl)
                 # This tropes media have been split into types, go explore them all now
@@ -372,7 +378,6 @@ def parse_page(url, options = None):
     # Map out related pages
     doRelated = True
     if options:
-        print options
         if any(x in options for x in ["MediaSubPage","TropeSubPage"]):
             doRelated = False
 
