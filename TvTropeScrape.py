@@ -38,6 +38,7 @@ known_aliases = {
 allowedMedia = [
     'anime',
     'animation',
+    'advertising',
     'comicbook',
     'comics',
     'comicstrip',
@@ -54,6 +55,7 @@ allowedMedia = [
     'manga',
     'machinima',
     'magazine',
+    'media',
     'music',
     'myth',
     'newmedia',
@@ -93,7 +95,7 @@ ignoredTypes = [
     # Ignore TVtropes pages not relevant to project
     'administrivia', 'charactersheets', 'characters', 'community', 'cowboybebopathiscomputer', 'creatorkiller', 'crimeandpunishmentseries', 
     'darthwiki', 'dieforourship', 'drinkinggame', 'encounters', 'fanficrecs', 'fannickname', 'fishytheascendant', 'funwithacronyms', 'gush', 'haiku', 
-    'hellisthatnoise', 'hoyay', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect', 'memes', 'pantheon', 'pinball', 
+    'hellisthatnoise', 'hoyay', 'images', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect', 'memes', 'pantheon', 'pinball', 
     'quotes', 'reallife', 'recap', 'referencedby', 'ride', 'sandbox', 'selfdemonstrating', 'slidingscale', 'soyouwantto', 'sugarwiki', 'thatoneboss',
     'trivia', 'tropeco', 'tropers', 'tropertales', 'troubledproduction', 'turnofthemillennium', 'warpthataesop', 'wmg', 'workpagesinmain',
     'monster', 'wallbangers',
@@ -142,6 +144,7 @@ def test_redirect(url):
         try: res = urllib2.urlopen(req)
         except urllib2.HTTPError:
             logging.error("%s could not be found", url)
+            return None
         finalURL = res.geturl()
         # Remove Tvtropes redirect tag
         redirectIndex = finalURL.rfind("?from=") 
@@ -190,7 +193,8 @@ def identify_url(url, inputKey = None):
     #    result = test_redirect(testUrl)
     #    print result
     else:
-        logging.error("Unknown Url: %s\nOn page: \%", url, inputKey)
+        logging.error("Unknown Url: %s", url)
+        logging.error("On page: %s", inputKey)
         return None, None
     return pageType, pageKey
 
@@ -228,7 +232,8 @@ def parse_page(url, options = None):
     # Fix this for the sub-page cases
     if options:
         if any(x in options for x in ["MediaSubPage","TropeSubPage"]):
-            logging.info("%s\nAdding to Entry: %s", url, pageKey)
+            logging.info("%s", url)
+            logging.info("Adding to Entry: %s", pageKey)
     elif url not in urls_visited:
         logging.info("Creating New Entry")
         if pageType == "media":
@@ -246,18 +251,19 @@ def parse_page(url, options = None):
         initialUrl = None
         finalUrl = None
         for testlink in links:
-            initialUrl = testlink['href']
+            # Sometimes links contain unicode characters.  I'm guessing that's never something I want but this is kinda hacky
+            initialUrl = testlink['href'].encode('ascii', 'ignore')
             finalUrl = None
             # Save some time not bothering to follow external links
-            if tvtropes_base not in testlink['href']:
+            if tvtropes_base not in initialUrl:
                 continue
-            finalUrl = test_redirect(testlink['href']) 
+            finalUrl = test_redirect(initialUrl) 
             
             # Redirect unresolved
             if not finalUrl:
                 continue
             # Not sure if a tvtropes link will ever redirect somewhere else, but let's be safe
-            if tvtropes_base not in testlink['href']:
+            if tvtropes_base not in initialUrl:
                 continue
             # Found the first link worth following
             else:
@@ -345,27 +351,30 @@ def parse_page(url, options = None):
             if previous:
                 previousUrl = tvtropes_main + previous['href']
                 previousRedirect = test_redirect(tvtropes_main + previous['href'])
-                previousType, previousKey = identify_url(previousRedirect)
-                if previousRedirect not in urls_visited and previousUrl not in new_urls and previousType:
-                    new_urls.append(previousUrl)
-                    add_url(dbconnection, previousUrl, previousRedirect)
+                if previousRedirect:
+                    previousType, previousKey = identify_url(previousRedirect)
+                    if previousRedirect not in urls_visited and previousUrl not in new_urls and previousType:
+                        new_urls.append(previousUrl)
+                        add_url(dbconnection, previousUrl, previousRedirect)
             if current:
                 currentUrl = tvtropes_main + current['href']
                 currentRedirect = test_redirect(currentUrl)
-                currentType, currentKey = identify_url(currentRedirect)
-                if currentType:
-                    if pageKey != currentKey:
-                        add_index(dbconnection, pageKey, currentKey)
-                    if currentRedirect not in urls_visited and currentUrl not in new_urls:
-                        new_urls.append(currentUrl)
-                        add_url(dbconnection, currentUrl, currentRedirect)
+                if currentRedirect:
+                    currentType, currentKey = identify_url(currentRedirect)
+                    if currentType:
+                        if pageKey != currentKey:
+                            add_index(dbconnection, pageKey, currentKey)
+                        if currentRedirect not in urls_visited and currentUrl not in new_urls:
+                            new_urls.append(currentUrl)
+                            add_url(dbconnection, currentUrl, currentRedirect)
             if subsequent:    
                 subsequentUrl = tvtropes_main + subsequent['href']
                 subsequentRedirect = test_redirect(subsequentUrl)
-                subsequentType, subsequentKey = identify_url(subsequentRedirect)
-                if subsequentRedirect not in urls_visited and subsequentUrl not in new_urls and subsequentType:
-                    new_urls.append(subsequentUrl)
-                    add_url(dbconnection, subsequentUrl, subsequentRedirect)
+                if subsequentRedirect:
+                    subsequentType, subsequentKey = identify_url(subsequentRedirect)
+                    if subsequentRedirect not in urls_visited and subsequentUrl not in new_urls and subsequentType:
+                        new_urls.append(subsequentUrl)
+                        add_url(dbconnection, subsequentUrl, subsequentRedirect)
    
     # Done Parsing, add to DB
     urls_visited.add(url)
@@ -467,9 +476,12 @@ if __name__ == "__main__":
     
     # Recursive search test
     testUrl = "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury"
+    
     if new_urls:
+        logging.debug("Starting New Run with %i urls to search", len(new_urls))
         recur_search()
     else:
+        logging.debug("Starting New Run fresh from %s", testUrl)
         add_url(dbconnection, testUrl)
         recur_search(testUrl)
 
