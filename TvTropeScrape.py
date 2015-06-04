@@ -50,16 +50,21 @@ known_aliases = {
     }
 
 allowedMedia = [
-    'anime',
-    'animation',
     'advertising',
+    'anime',
+    'animeandmanga',
+    'animation',
+    'arg',
+    'blog',
     'comicbook',
+    'comicbooks',
     'comics',
     'comicstrip',
     'creator',
     'discworld',
     'disney',               # Apparently big enough to be it's own type of media.  Who knew?
     'fanfic',
+    'fanworks',
     'film',
     'franchise',
     'letsplay',
@@ -81,9 +86,12 @@ allowedMedia = [
     'theatre',
     'toys',
     'videogame',
+    'videogames',
     'visualnovel',
+    'visualnovels',
     'webanimation',
     'webcomic',
+    'webcomics',
     'weboriginal',
     'website',
     'webvideo',
@@ -103,13 +111,14 @@ ignoredTypes = [
     'funny', 'headscratchers', 'highoctanenightmarefuel', 'horrible', 'narm', 'nightmarefuel', 'shockingelimination', 'thatoneboss',
     'thescrappy', 'whatanidiot', 'ymmv',
 
+
     # Ignored types that we may add in future
-    'shoutout', 'usefulnotes', 'wrestling', 'script',
+    'other', 'pinball', 'script', 'shoutout', 'usefulnotes', 'wrestling',
 
     # Ignore TVtropes pages not relevant to project
     'administrivia', 'charactersheets', 'characters', 'community', 'cowboybebopathiscomputer', 'creatorkiller', 'crimeandpunishmentseries', 
-    'darthwiki', 'dieforourship', 'drinkinggame', 'encounters', 'fanficrecs', 'fannickname', 'fishytheascendant', 'funwithacronyms', 'gush', 'haiku', 
-    'hellisthatnoise', 'hoyay', 'images', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect', 'memes', 'pantheon', 'pinball', 
+    'darthwiki', 'dieforourship', 'directlinetotheauthor', 'drinkinggame', 'encounters', 'fanficrecs', 'fannickname', 'fishytheascendant', 'funwithacronyms', 'gush', 'haiku', 
+    'hellisthatnoise', 'hoyay', 'images', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect', 'memes', 'pantheon', 
     'quotes', 'reallife', 'recap', 'referencedby', 'ride', 'sandbox', 'selfdemonstrating', 'slidingscale', 'soyouwantto', 'sugarwiki', 'thatoneboss',
     'trivia', 'tropeco', 'tropers', 'tropertales', 'troubledproduction', 'turnofthemillennium', 'warpthataesop', 'wmg', 'workpagesinmain',
     'monster', 'wallbangers',
