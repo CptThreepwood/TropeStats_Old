@@ -18,7 +18,7 @@ class SetEncoder(json.JSONEncoder):
 import sqlite3
 
 counter = 0
-limit = 50
+limit = 200 
 
 DatabaseName = "TropeStats.db"
 dbconnection = None
@@ -230,11 +230,17 @@ def identify_url(url, parentName = None):
     
     # Complicated Cases. For the first cases we have Name because we came from that page
     # What if a page links to a sub-page for another trope
-    #elif any(media in urlComponents[-1].lower() for media in allowedMedia):
-    #    testUrl = tvtropes_main + "/pmwiki/pmwiki.php/Main/" + urlComponents[-2]
-    #    print "Testing Url: ", testUrl
-    #    result = test_redirect(testUrl)
-    #    print result
+    elif any(urlName.lower() == media for media in allowedMedia):
+        testUrl = tvtropes_trope + urlType
+        logging.info("Possibly a link to a sub-page not from a parent %s", url)
+        logging.info("Testing for %s", testUrl)
+        result = test_redirect(testUrl)
+        if result:
+            logging.info("Found a trope page")
+            pageType = "trope"
+            pageKey = urlType
+        else:
+            return None, None
     else:
         logging.error("Unknown Url: %s", url)
         logging.error("On page: %s with %s/%s", parentName, urlType, urlName)
@@ -523,6 +529,8 @@ if __name__ == "__main__":
     
     # Recursive search test
     testUrl = "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury"
+    
+    # Urls to fix
     
     if new_urls:
         logging.debug("Starting New Run with %i urls to search", len(new_urls))
