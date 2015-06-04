@@ -176,39 +176,53 @@ def test_redirect(url):
         known_redirects[url] = finalURL
     return finalURL
 
-def identify_url(url, inputKey = None):
+def identify_url(url, parentName = None):
     urlComponents = url.split('/')
+    urlType = urlComponents[-2]
+    urlName = urlComponents[-1]
+    
+    # Simple Cases.  Page Url is .../Type/Name
     # If we're ignoring this page type -> return None
-    if any(category == urlComponents[-2].lower() for category in ignoredTypes):
-        logging.info("Ignored Type: %s", urlComponents[-2])
+    if any(urlType.lower() == ignored for ignored in ignoredTypes):
+        logging.info("Ignored Type: %s", urlType)
         return None, None
     # If this is a media url -> return "media", type/name
-    elif any(media == urlComponents[-2].lower() for media in allowedMedia):
+    elif any(urlType.lower() == media for media in allowedMedia):
         pageType = "media"
-        pageKey = urlComponents[-2] + '/' + urlComponents[-1]
+        pageKey = urlType + '/' + urlName
     # If this is a trope url -> return "trope", name
-    elif "main" in urlComponents[-2].lower():
+    elif urlType == "Main":
         pageType = "trope"
-        pageKey = urlComponents[-1]
+        pageKey = urlName
+
+    # Trickier Cases. SubPages where er have the parentName because we came from that page
+    # MediaSubPage Url is something like /MediaName/TropesAtoC
     # If this is a media sub-page -> return "mediaSubPage", mediaName
-    elif urlComponents[-2] == inputKey and "Tropes" in urlComponents[-1]:
+    elif urlType == parentName and re.search("[A-Za-z][tT]o[A-Za-z]$", urlName):
         pageType = "mediaSubPage"
-        pageKey = inputKey 
+        pageKey = parentName 
+    # TropeSubPage Url is something like /TropeName/MediaType
+    # If this is a trope sub-page -> return "tropeSubPage", tropeName
+    elif urlType == parentName and any(urlName.lower() == media for media in allowedMedia):
+        pageType = "tropeSubPage"
+        pageKey = parentName
+    # Sometimes a name is shortened for sub-pages.  This is really annoying.
     # If this is a media sub-page with a known alias -> return "mediaSubPage", mediaName
-    elif inputKey in known_aliases:
-        if urlComponents[-2] == known_aliases[inputKey] and "Tropes" in urlComponents[-1]:
+    elif parentName in known_aliases:
+        if urlType == known_aliases[parentName] and "Tropes" in urlName:
             pageType = "mediaSubPage"
-            pageKey = inputKey 
-        elif urlComponents[-2] == known_aliases[inputKey]:
-            logging.warning("Known Alias but not a Media SubPage: %s", url)
+            pageKey = parentName 
+        elif urlType == known_aliases[parentName] and any(urlName.lower() == media for media in allowedMedia):
+            pageType = "tropeSubPage"
+            pageKey = parentName
+        elif urlType == known_aliases[parentName]:
+            logging.warning("Known Alias but not a Recognised SubPage: %s", url)
             return None, None
         else:
             logging.warning("Unknown Page Type: %s", url)
             return None, None
-    # If this is a trope sub-page -> return "tropeSubPage", tropeName
-    elif urlComponents[-2] == inputKey and any(media in urlComponents[-1].lower() for media in allowedMedia):
-        pageType = "tropeSubPage"
-        pageKey = inputKey
+    
+    # Complicated Cases. For the first cases we have Name because we came from that page
     # What if a page links to a sub-page for another trope
     #elif any(media in urlComponents[-1].lower() for media in allowedMedia):
     #    testUrl = tvtropes_main + "/pmwiki/pmwiki.php/Main/" + urlComponents[-2]
@@ -358,9 +372,8 @@ def parse_page(url, options = None):
     # Map out related pages
     doRelated = True
     if options:
-        if "MediaSubPage" in options:
-            doRelated = False
-        if "TropeSubPage" in options:
+        print options
+        if any(options == x for x in ["MediaSubPage","TropeSubPage"]):
             doRelated = False
 
     if doRelated:    
