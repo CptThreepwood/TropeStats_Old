@@ -1,1 +1,11 @@
+# Buffer files
 *.swp
+*~
+
+# Compiled Code
+*.pyc
+
+# Database and Logfiles
+*.log
+*.db
+
