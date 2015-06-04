@@ -208,7 +208,7 @@ def identify_url(url, inputKey = None):
     #    print result
     else:
         logging.error("Unknown Url: %s", url)
-        logging.error("On page: %s", inputKey)
+        logging.error("On page: %s with %s/%s", parentName, urlType, urlName)
         return None, None
     return pageType, pageKey
 

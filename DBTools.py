@@ -54,7 +54,7 @@ def add_url(dbconnection, url, redirect = None):
         with dbconnection:
             dbconnection.execute("INSERT INTO UrlChecklist VALUES (?, ?, 0)", (url, redirect))
     except sqlite3.IntegrityError:
-        logging.error("Tried to add a url that already exists\n%s", url)
+        logging.error("Tried to add a url that already exists: %s", url)
     return
 
 # Save that we've checked a given Url
