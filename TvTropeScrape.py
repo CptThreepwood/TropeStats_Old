@@ -18,7 +18,7 @@ class SetEncoder(json.JSONEncoder):
 import sqlite3
 
 counter = 0
-limit = 200 
+limit = 500 
 
 DatabaseName = "TropeStats.db"
 dbconnection = None
@@ -53,9 +53,14 @@ allowedMedia = [
     'advertising',
     'anime',
     'animeandmanga',
+    'animatedfilm',
+    'animatedfilms',
     'animation',
+    'audioplay',
     'arg',
     'blog',
+    'bollywood',
+    'cardgame',
     'comicbook',
     'comicbooks',
     'comics',
@@ -64,27 +69,52 @@ allowedMedia = [
     'discworld',
     'disney',               # Apparently big enough to be it's own type of media.  Who knew?
     'fanfic',
+    'fanfics',
+    'fanfiction',
+    'fanwork',
     'fanworks',
     'film',
+    'fokelore',
     'franchise',
     'letsplay',
     'lightnovel',
     'literature',
+    'liveaction',
+    'liveactionfilm',
+    'liveactionfilms',
     'liveactiontv',
-    'manga',
     'machinima',
+    'manga',
+    'manhua',
+    'manhwa',
+    'manhwaandmanhua',
     'magazine',
+    'magazines',
+    'marvelcinematicuniverse',
     'media',
     'music',
+    'musicvideos',
     'myth',
+    'mythandreligion',
+    'mythology',
     'newmedia',
+    'newspapercomics',
     'podcast',
+    'printmedia',
+    'puppetshows',
     'radio',
+    'religion',
     'roleplay',
+    'roleplayinggames',
     'series',
+    'tabletoprpg',
     'tabletopgame',
+    'tabletopgames',
+    'tabletopgaming',
+    'television',
     'theatre',
     'toys',
+    'troperworks',
     'videogame',
     'videogames',
     'visualnovel',
@@ -95,6 +125,7 @@ allowedMedia = [
     'weboriginal',
     'website',
     'webvideo',
+    'webvideos',
     'westernanimation',
     'wiki',
     ]
@@ -113,7 +144,7 @@ ignoredTypes = [
 
 
     # Ignored types that we may add in future
-    'other', 'pinball', 'script', 'shoutout', 'usefulnotes', 'wrestling',
+    'allblue', 'other', 'pinball', 'professionalwrestling', 'script', 'shoutout', 'sports', 'usefulnotes', 'themeparks', 'whamepisode', 'wrestling',
 
     # Ignore TVtropes pages not relevant to project
     'administrivia', 'charactersheets', 'characters', 'community', 'cowboybebopathiscomputer', 'creatorkiller', 'crimeandpunishmentseries', 
@@ -304,7 +335,7 @@ def parse_page(url, options = None):
             initialUrl = testlink['href'].encode('ascii', 'ignore')
             finalUrl = None
             # Save some time not bothering to follow external links
-            if tvtropes_base not in initialUrl:
+            if tvtropes_page not in initialUrl:
                 continue
             finalUrl = test_redirect(initialUrl) 
             
@@ -312,7 +343,7 @@ def parse_page(url, options = None):
             if not finalUrl:
                 continue
             # Not sure if a tvtropes link will ever redirect somewhere else, but let's be safe
-            if tvtropes_base not in initialUrl:
+            if tvtropes_page not in initialUrl:
                 continue
             # Found the first link worth following
             else:
