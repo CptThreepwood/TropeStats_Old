@@ -75,6 +75,7 @@ allowedMedia = [
     'dcanimateduniverse'
     'discworld',
     'disney',               # Apparently big enough to be it's own type of media.  Who knew?
+    'disneyandpixar',
     'dreamworks',
     'dungeonsanddragons',
     'easternanimation',
@@ -404,8 +405,10 @@ def parse_page(url, options = None):
         # Assign results to appropriate dictionary
         # Save tropes associated to this media, check their urls
         if pageType == "media":
+            # Make a note of this connection
             if entryType == "trope":
                 add_relation(dbconnection, pageKey, entryKey, 1, 1)
+            # Harvest urls to follow
             if finalUrl not in urls_visited:
                 # Add link to link database
                 if entryType == "trope":
@@ -415,6 +418,10 @@ def parse_page(url, options = None):
                 # We've got a bunch of sub-pages for this media
                 # Immediately go get subpage information 
                 elif entryType == "mediaSubPage":
+                    if options:
+                        logging.warning("There is a sub-subPage here or subPages refer to each other")
+                        logging.warning("Skipping %s", finalUrl)
+                        continue
                     parse_page(finalUrl, {"MediaSubPage" : pageKey})
                 # Franchise pages sometimes just link to each media subpage
                 # In this case we should investigate each of those links, but not associate them to the Franchise page
@@ -431,8 +438,10 @@ def parse_page(url, options = None):
                     logging.warning("Not currently considering: %s", finalUrl)
         # Save media associated to trope, check their urls
         elif pageType == "trope":
+            # Make a note of this connection
             if entryType == "media":
                 add_relation(dbconnection, entryKey, pageKey, 1, -1)
+            # Harvest urls to follow
             if finalUrl not in urls_visited:
                 # Add link to link database
                 if entryType == "media":
@@ -446,6 +455,10 @@ def parse_page(url, options = None):
                         add_url(dbconnection, initialUrl, finalUrl)
                 # This tropes media have been split into types, go explore them all now
                 elif entryType == "tropeSubPage":
+                    if options:
+                        logging.warning("There is a sub-subPage here or subPages refer to each other")
+                        logging.warning("Skipping %s", finalUrl)
+                        continue
                     parse_page(finalUrl, {"TropeSubPage" : pageKey})
                 else:
                     logging.warning("Not currently considering: %s", finalUrl)
@@ -493,6 +506,7 @@ def parse_page(url, options = None):
                         add_url(dbconnection, subsequentUrl, subsequentRedirect)
    
     # Done Parsing, add to DB
+    logging.info("%s finished", url)
     urls_visited.add(url)
     commit_page(dbconnection, url)
     return 0
@@ -550,6 +564,50 @@ def recur_search(url = None):
 
     return
 
+def loop_search():
+    currentCount = 0
+    
+    while(new_urls):
+        url = new_urls.popleft()
+        if limit > 0 and currentCount >= limit:
+            logging.critical("Exceeded limit")
+            break
+
+        # Don't follow external links
+        if "tvtropes.org" not in url:
+            logging.info("External Link Ignored: %s", url)
+            continue
+
+        finalUrl = test_redirect(url)
+        if not finalUrl:
+            logging.info("%s could not be resolved", url)
+            continue
+        currentCount = currentCount + 1
+
+        pageType, pageTitle = identify_url(finalUrl)
+        # Code snippet to make ordinal numbers
+        # Taken from http://codegolf.stackexchange.com/questions/4707/outputting-ordinal-numbers-1st-2nd-3rd
+        ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
+        logging.info("Processing %s url", ordinal(currentCount))
+        logging.info("%s", finalUrl)
+
+        # Ignore links with bad types
+        if pageType in ignoredTypes:
+            logging.info("Link to unintersting page ignored")
+            continue
+        # Ignore links already searched
+        if finalUrl in urls_visited:
+            logging.info("Link already discovered")
+            continue 
+
+        logging.info("%s: %s", pageTitle, pageType)
+        parse_page(finalUrl)
+    
+    dbconnection.commit()
+    dbconnection.close()
+    return
+
+
 def start_at_top():
     # Start the recursive search at the top level trope index
     htmltest = urllib.urlopen(tvtropes_tropeindex).readlines()
@@ -605,7 +663,7 @@ if __name__ == "__main__":
     
     if new_urls:
         logging.debug("Starting New Run with %i urls to search", len(new_urls))
-        recur_search()
+        loop_search()
     else:
         logging.debug("Starting New Run fresh from %s", testUrl)
         add_url(dbconnection, testUrl)
