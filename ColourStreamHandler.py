@@ -24,16 +24,16 @@
 # I changed the filename. Colour is spelt with a 'u'
 # Also some minor edits to adapt it into a module
 # 2015 David Jennens
- 
+
 import logging
- 
+
 class _AnsiColourStreamHandler(logging.StreamHandler):
     DEFAULT = '\x1b[0m'
     RED = '\x1b[31m'
     GREEN = '\x1b[32m'
     YELLOW = '\x1b[33m'
     CYAN = '\x1b[36m'
- 
+
     CRITICAL = RED
     ERROR = RED
     WARNING = YELLOW
@@ -48,10 +48,10 @@ class _AnsiColourStreamHandler(logging.StreamHandler):
         elif level >= logging.INFO: return cls.INFO
         elif level >= logging.DEBUG: return cls.DEBUG
         else: return cls.DEFAULT
- 
+
     def __init__(self, stream=None):
         logging.StreamHandler.__init__(self, stream)
- 
+
     def format(self, record):
         text = logging.StreamHandler.format(self, record)
         color = self._get_color(record.levelno)
@@ -69,7 +69,7 @@ class _WinColourStreamHandler(logging.StreamHandler):
     FOREGROUND_GREY = 0x0007
     FOREGROUND_INTENSITY = 0x0008 # foreground color is intensified.
     FOREGROUND_WHITE = FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED
- 
+
     BACKGROUND_BLACK = 0x0000
     BACKGROUND_BLUE = 0x0010
     BACKGROUND_GREEN = 0x0020
@@ -120,4 +120,3 @@ if platform.system() == 'Windows':
     ColourStreamHandler = _WinColourStreamHandler()
 else:
     ColourStreamHandler = _AnsiColourStreamHandler()
-

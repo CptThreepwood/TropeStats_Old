@@ -18,7 +18,7 @@ class SetEncoder(json.JSONEncoder):
 import sqlite3
 
 counter = 0
-limit = 500 
+limit = 5000 
 
 DatabaseName = "TropeStats.db"
 dbconnection = None
@@ -56,26 +56,43 @@ allowedMedia = [
     'animatedfilm',
     'animatedfilms',
     'animation',
-    'audioplay',
     'arg',
+    'asiananimation',
+    'audioplay',
+    'author',
     'blog',
     'bollywood',
+    'book',
     'cardgame',
+    'cardgames',
     'comicbook',
     'comicbooks',
+    'comic',
     'comics',
     'comicstrip',
+    'composer',
     'creator',
+    'dcanimateduniverse'
     'discworld',
     'disney',               # Apparently big enough to be it's own type of media.  Who knew?
+    'dreamworks',
+    'dungeonsanddragons',
+    'easternanimation',
+    'fairytales',
     'fanfic',
     'fanfics',
     'fanfiction',
     'fanwork',
     'fanworks',
     'film',
+    'films',
     'fokelore',
+    'folklore',
+    'folkloreandfairytales',
     'franchise',
+    'gamebooks',
+    'jokes',
+    'larp',
     'letsplay',
     'lightnovel',
     'literature',
@@ -97,22 +114,38 @@ allowedMedia = [
     'myth',
     'mythandreligion',
     'mythology',
+    'mythologyandreligion',
+    'mythsandreligion',
     'newmedia',
+    'newspapercomic',
     'newspapercomics',
+    'other',
+    'pinball',
     'podcast',
     'printmedia',
+    'professionalwrestling',
+    'prowrestling',
     'puppetshows',
     'radio',
+    'reallife',
+    'recordedandstandupcomedy'
     'religion',
+    'religionandmythology',
     'roleplay',
     'roleplayinggames',
+    'script',
     'series',
+    'sports',
+    'standupcomedy',
+    'tabletop',
     'tabletoprpg',
     'tabletopgame',
     'tabletopgames',
     'tabletopgaming',
     'television',
+    'theater',
     'theatre',
+    'themeparks',
     'toys',
     'troperworks',
     'videogame',
@@ -122,12 +155,16 @@ allowedMedia = [
     'webanimation',
     'webcomic',
     'webcomics',
+    'webcreator',
+    'webgames',
+    'webmedia',
     'weboriginal',
     'website',
     'webvideo',
     'webvideos',
     'westernanimation',
     'wiki',
+    'wrestling',
     ]
 
 # Can I work out a way to scrape this?  Maybe using the full list and hardcode some specific allowed types?
@@ -139,18 +176,18 @@ ignoredTypes = [
     # Ignore YMMV type namespaces
     'aatafovs', 'accidentalnightmarefuel', 'alternativecharacterinterpretation', 'andthefandomrejoiced', 'analysis', 'awesome', 
     'awesomebosses', 'awesomebutimpractical', 'awesomemusic', 'badass', 'betterthanitsounds', 'fetishfuel', 'fridge', 'fridgebrilliance', 'fridgehorror', 
-    'funny', 'headscratchers', 'highoctanenightmarefuel', 'horrible', 'narm', 'nightmarefuel', 'shockingelimination', 'thatoneboss',
+    'funny', 'headscratchers', 'heartwarming', 'highoctanenightmarefuel', 'horrible', 'narm', 'nightmarefuel', 'shockingelimination', 'thatoneboss',
     'thescrappy', 'whatanidiot', 'ymmv',
 
 
     # Ignored types that we may add in future
-    'allblue', 'other', 'pinball', 'professionalwrestling', 'script', 'shoutout', 'sports', 'usefulnotes', 'themeparks', 'whamepisode', 'wrestling',
+    'allblue', 'shoutout', 'usefulnotes', 'whamepisode',
 
     # Ignore TVtropes pages not relevant to project
     'administrivia', 'charactersheets', 'characters', 'community', 'cowboybebopathiscomputer', 'creatorkiller', 'crimeandpunishmentseries', 
     'darthwiki', 'dieforourship', 'directlinetotheauthor', 'drinkinggame', 'encounters', 'fanficrecs', 'fannickname', 'fishytheascendant', 'funwithacronyms', 'gush', 'haiku', 
-    'hellisthatnoise', 'hoyay', 'images', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect', 'memes', 'pantheon', 
-    'quotes', 'reallife', 'recap', 'referencedby', 'ride', 'sandbox', 'selfdemonstrating', 'slidingscale', 'soyouwantto', 'sugarwiki', 'thatoneboss',
+    'hellisthatnoise', 'hoyay', 'imagelinks', 'images', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect', 'memes', 'pantheon', 
+    'quotes', 'recap', 'referencedby', 'ride', 'sandbox', 'selfdemonstrating', 'slidingscale', 'soyouwantto', 'sugarwiki', 'thatoneboss',
     'trivia', 'tropeco', 'tropers', 'tropertales', 'troubledproduction', 'turnofthemillennium', 'warpthataesop', 'wmg', 'workpagesinmain',
     'monster', 'wallbangers',
     ]
@@ -196,6 +233,7 @@ def test_redirect(url):
     if url in known_redirects:
         finalURL = known_redirects[url]
     else:
+        logging.info("Testing redirect for %s", url)
         req = urllib2.Request(url)
         try: res = urllib2.urlopen(req)
         except urllib2.HTTPError:
@@ -494,6 +532,8 @@ def recur_search(url = None):
     # Ignore links already searched
     if finalUrl in urls_visited:
         logging.info("Link already discovered")
+        if new_urls:
+            recur_search(new_urls.popleft())
         return
 
     logging.info("%s: %s", pageTitle, pageType)
