@@ -193,32 +193,6 @@ ignoredTypes = [
     'monster', 'wallbangers',
     ]
 
-# Namespaces allowed (basically super-tropes), they have a main page:
-# LyricalDissonance
-# NoodleIncident
-# RunningGag
-# Woobie
-# Wham Episode
-# TropeNamers - Special Parsing for this I think
-# TearJerker
-# TakeThat
-# ShoutOut
-# Radar
-# LampshadeHanging
-# FiveManBad
-# FiveManBand
-# FamousLastWords
-# EpicFail
-# EnsembleDarkHorse
-# Earworm
-# Creator
-# CrazyPrepared
-# ContinuityNod
-# BerserkButton
-# ArtEvolution
-# AnachronismStew 
-# ActorAllusion
-
 tvtropes_base = "tvtropes.org"
 tvtropes_main = "http://tvtropes.org"
 tvtropes_page = tvtropes_main + "/pmwiki/pmwiki.php/"
