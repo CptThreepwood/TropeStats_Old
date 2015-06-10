@@ -33,7 +33,7 @@ f.close()
 
 logFormat = '[%(asctime)s] %(filename)-20s %(levelname)8s - %(message)s'
 consoleFormat = '%(filename)-20s %(levelname)8s : %(message)s'
-logging.basicConfig(format=logFormat, level=logging.DEBUG, filename='Scrape.log', filemode = 'a')
+logging.basicConfig(format=logFormat, level=logging.INFO, filename='Scrape.log', filemode = 'a')
 
 #consoleOut = logging.StreamHandler()
 #consoleOut.setFormatter(logging.Formatter(consoleFormat))
@@ -58,6 +58,7 @@ allowedMedia = [
     'animation',
     'arg',
     'asiananimation',
+    'audio',
     'audioplay',
     'author',
     'blog',
@@ -208,7 +209,7 @@ def test_redirect(url):
     if url in known_redirects:
         finalURL = known_redirects[url]
     else:
-        logging.info("Testing redirect for %s", url)
+        logging.debug("Testing redirect for %s", url)
         req = urllib2.Request(url)
         try: res = urllib2.urlopen(req)
         except urllib2.HTTPError:
@@ -480,7 +481,7 @@ def parse_page(url, options = None):
                         add_url(dbconnection, subsequentUrl, subsequentRedirect)
    
     # Done Parsing, add to DB
-    logging.info("%s finished", url)
+    logging.debug("%s finished", url)
     urls_visited.add(url)
     commit_page(dbconnection, url)
     return 0
