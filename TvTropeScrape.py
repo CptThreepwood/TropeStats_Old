@@ -18,7 +18,7 @@ class SetEncoder(json.JSONEncoder):
 import sqlite3
 
 counter = 0
-limit = 5000 
+limit = 10000
 
 DatabaseName = "TropeStats.db"
 dbconnection = None
@@ -454,7 +454,7 @@ def parse_page(url, options = None):
             subsequent = items[2].find('a')
             if previous:
                 previousUrl = tvtropes_main + previous['href']
-                previousRedirect = test_redirect(tvtropes_main + previous['href'])
+                previousRedirect = test_redirect(previousUrl.encode('ascii', 'ignore'))
                 if previousRedirect:
                     previousType, previousKey = identify_url(previousRedirect)
                     if previousRedirect not in urls_visited and previousUrl not in new_urls and previousType:
@@ -462,7 +462,7 @@ def parse_page(url, options = None):
                         add_url(dbconnection, previousUrl, previousRedirect)
             if current:
                 currentUrl = tvtropes_main + current['href']
-                currentRedirect = test_redirect(currentUrl)
+                currentRedirect = test_redirect(currentUrl.encode('ascii', 'ignore'))
                 if currentRedirect:
                     currentType, currentKey = identify_url(currentRedirect)
                     if currentType:
@@ -473,7 +473,7 @@ def parse_page(url, options = None):
                             add_url(dbconnection, currentUrl, currentRedirect)
             if subsequent:    
                 subsequentUrl = tvtropes_main + subsequent['href']
-                subsequentRedirect = test_redirect(subsequentUrl)
+                subsequentRedirect = test_redirect(subsequentUrl.encode('ascii', 'ignore'))
                 if subsequentRedirect:
                     subsequentType, subsequentKey = identify_url(subsequentRedirect)
                     if subsequentRedirect not in urls_visited and subsequentUrl not in new_urls and subsequentType:
@@ -644,8 +644,6 @@ if __name__ == "__main__":
         add_url(dbconnection, testUrl)
         recur_search(testUrl)
 
-    dbconnection.commit()
-    dbconnection.close()
 #    print "URLS TO VISIT"
 #    for URL in new_urls:
 #        print URL
