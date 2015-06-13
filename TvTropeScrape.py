@@ -520,7 +520,7 @@ def recur_search(url = None):
         return
     # Ignore links already searched
     if finalUrl in urls_visited:
-        logging.info("Link already discovered")
+        logging.debug("Link already discovered")
         if new_urls:
             recur_search(new_urls.popleft())
         return
@@ -563,8 +563,6 @@ def loop_search():
         # Code snippet to make ordinal numbers
         # Taken from http://codegolf.stackexchange.com/questions/4707/outputting-ordinal-numbers-1st-2nd-3rd
         ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
-        logging.info("Processing %s url", ordinal(currentCount))
-        logging.info("%s", finalUrl)
 
         # Ignore links with bad types
         if pageType in ignoredTypes:
@@ -572,8 +570,11 @@ def loop_search():
             continue
         # Ignore links already searched
         if finalUrl in urls_visited:
-            logging.info("Link already discovered")
+            logging.debug("Link already discovered")
+            currentCount = currentCount -1
             continue 
+        logging.info("Processing %s url", ordinal(currentCount))
+        logging.info("%s", finalUrl)
 
         logging.info("%s: %s", pageTitle, pageType)
         parse_page(finalUrl)
