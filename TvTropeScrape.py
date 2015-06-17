@@ -215,6 +215,10 @@ def test_redirect(url):
         except urllib2.HTTPError:
             logging.error("%s could not be found", url)
             return None
+        except:
+            logging.error("Unknown error opening %s", url)
+            logging.error("%s", sys.exc_info()[0])
+            return None
         finalURL = res.geturl()
         # Remove Tvtropes redirect tag
         redirectIndex = finalURL.rfind("?from=") 
@@ -345,6 +349,9 @@ def parse_page(url, options = None):
         initialUrl = None
         finalUrl = None
         for testlink in links:
+            #if 'href' not in testlink:
+            #    logging.warning("a element does not contain href: %s", testlink)
+            #    continue
             # Sometimes links contain unicode characters.  I'm guessing that's never something I want but this is kinda hacky
             initialUrl = testlink['href'].encode('ascii', 'ignore')
             finalUrl = None
@@ -444,8 +451,9 @@ def parse_page(url, options = None):
         if any(x in options for x in ["MediaSubPage","TropeSubPage"]):
             doRelated = False
 
-    if doRelated:    
-        related = html.find_all(attrs={"class": "wiki-walk"})[0]
+    table = html.find_all(attrs={"class": "wiki-walk"})
+    if doRelated and table:    
+        related = table[0]
         rows = related.find_all(attrs={"class": "walk-row"})
         for row in rows:
             items = row.find_all('span')
@@ -479,7 +487,9 @@ def parse_page(url, options = None):
                     if subsequentRedirect not in urls_visited and subsequentUrl not in new_urls and subsequentType:
                         new_urls.append(subsequentUrl)
                         add_url(dbconnection, subsequentUrl, subsequentRedirect)
-   
+    elif doRelated:
+        logging.warning("No Relation Table found at %s", finalUrl)
+        
     # Done Parsing, add to DB
     logging.debug("%s finished", url)
     urls_visited.add(url)
