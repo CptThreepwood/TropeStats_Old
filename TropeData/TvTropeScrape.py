@@ -253,7 +253,7 @@ def identify_url(url, parentName = None):
         return None, None
     # MediaSubPage Url is something like /MediaName/TropesAtoC
     # If this is a media sub-page -> return "mediaSubPage", mediaName
-    elif urlType == parentName and re.search("[A-Za-z][tT]o[A-Za-z]$", urlName):
+    elif urlType == parentName and re.search("[A-Za-z][Tt]o[A-Za-z]$", urlName):
         pageType = "mediaSubPage"
         pageKey = parentName 
     # TropeSubPage Url is something like /TropeName/MediaType
@@ -353,6 +353,8 @@ def parse_page(url, options = None):
             #    logging.warning("a element does not contain href: %s", testlink)
             #    continue
             # Sometimes links contain unicode characters.  I'm guessing that's never something I want but this is kinda hacky
+            # I should instead flag this as an error and resolve it sensibly
+            # see: https://stackoverflow.com/questions/4389572/how-to-fetch-a-non-ascii-url-with-python-urlopen
             initialUrl = testlink['href'].encode('ascii', 'ignore')
             finalUrl = None
             # Save some time not bothering to follow external links
