@@ -7,13 +7,11 @@ from bs4 import BeautifulSoup
 import logging
 import ColourStreamHandler
 
-from DBTools import *
-import sqlite3
+import DBTools
 
 counter = 0
 limit = 50000
 
-DatabaseName = "TropeStats.db"
 dbconnection = None
 dbcursor = None
 new_urls = deque()
@@ -327,10 +325,10 @@ def parse_page(url, options = None):
             logging.info("Adding to Entry: %s", pageKey)
     elif url not in urls_visited:
         logging.info("Creating New Entry")
-        if pageType == "media":
-            add_media(dbconnection, pageKey, url, html.find('title').string.replace(" - TV Tropes", ""))
-        if pageType == "trope":
-            add_trope(dbconnection, pageKey, url, html.find('title').string.replace(" - TV Tropes", ""))
+        if page_type == "media":
+            DBTools.add_media(dbconnection, page_key, url, html.find('title').string.replace(" - TV Tropes", ""))
+        if page_type == "trope":
+            DBTools.add_trope(dbconnection, page_key, url, html.find('title').string.replace(" - TV Tropes", ""))
         
     # There are some examples - Let's go find them    
     items = textblock.find_all('li')
@@ -384,14 +382,14 @@ def parse_page(url, options = None):
         if pageType == "media":
             # Make a note of this connection
             if entryType == "trope":
-                add_relation(dbconnection, pageKey, entryKey, 1, 1)
+                DBTools.add_relation(dbconnection, page_key, entryKey, 1, 1)
             # Harvest urls to follow
             if finalUrl not in urls_visited:
                 # Add link to link database
                 if entryType == "trope":
                     if initialUrl not in new_urls:
                         new_urls.append(initialUrl)
-                        add_url(dbconnection, initialUrl, finalUrl)
+                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
                 # We've got a bunch of sub-pages for this media
                 # Immediately go get subpage information 
                 elif entryType == "mediaSubPage":
@@ -406,30 +404,30 @@ def parse_page(url, options = None):
                     # Add link to link database
                     if initialUrl not in new_urls:
                         new_urls.append(initialUrl)
-                        add_url(dbconnection, initialUrl, finalUrl)
+                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
                 elif entryType == "media":
                     if initialUrl not in new_urls and finalUrl != tvtropes_page + pageKey:
                         new_urls.append(initialUrl)
-                        add_url(dbconnection, initialUrl, finalUrl)
+                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
                 else :
                     logging.warning("Not currently considering: %s", finalUrl)
         # Save media associated to trope, check their urls
         elif pageType == "trope":
             # Make a note of this connection
             if entryType == "media":
-                add_relation(dbconnection, entryKey, pageKey, 1, -1)
+                DBTools.add_relation(dbconnection, entryKey, page_key, 1, -1)
             # Harvest urls to follow
             if finalUrl not in urls_visited:
                 # Add link to link database
                 if entryType == "media":
                     if initialUrl not in new_urls:
-                        add_url(dbconnection, initialUrl, finalUrl)
+                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
                         new_urls.append(initialUrl)
                 # If this is a super-trope page, add tropes to list
                 elif entryType == "trope":
                     if initialUrl not in new_urls and finalUrl != tvtropes_trope + pageKey:
                         new_urls.append(initialUrl)
-                        add_url(dbconnection, initialUrl, finalUrl)
+                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
                 # This tropes media have been split into types, go explore them all now
                 elif entryType == "tropeSubPage":
                     if options:
@@ -462,33 +460,34 @@ def parse_page(url, options = None):
                     previousType, previousKey = identify_url(previousRedirect)
                     if previousRedirect not in urls_visited and previousUrl not in new_urls and previousType:
                         new_urls.append(previousUrl)
-                        add_url(dbconnection, previousUrl, previousRedirect)
+                        DBTools.add_url(dbconnection, previousUrl, previousRedirect)
             if current:
-                currentUrl = tvtropes_main + current['href']
-                currentRedirect = test_redirect(currentUrl.encode('ascii', 'ignore'))
-                if currentRedirect:
-                    currentType, currentKey = identify_url(currentRedirect)
-                    if currentType:
-                        if pageKey != currentKey:
-                            add_index(dbconnection, pageKey, currentKey)
-                        if currentRedirect not in urls_visited and currentUrl not in new_urls:
-                            new_urls.append(currentUrl)
-                            add_url(dbconnection, currentUrl, currentRedirect)
-            if subsequent:    
-                subsequentUrl = tvtropes_main + subsequent['href']
-                subsequentRedirect = test_redirect(subsequentUrl.encode('ascii', 'ignore'))
-                if subsequentRedirect:
-                    subsequentType, subsequentKey = identify_url(subsequentRedirect)
-                    if subsequentRedirect not in urls_visited and subsequentUrl not in new_urls and subsequentType:
-                        new_urls.append(subsequentUrl)
-                        add_url(dbconnection, subsequentUrl, subsequentRedirect)
+                current_url = tvtropes_main + current['href']
+                current_redirect = test_redirect(current_url.encode('ascii', 'ignore'))
+                if current_redirect:
+                    current_type, current_key = identify_url(current_redirect)
+                    if current_type:
+                        if page_key != current_key:
+                            DBTools.add_index(dbconnection, page_key, current_key)
+                        if current_redirect not in urls_visited and current_url not in new_urls:
+                            new_urls.append(current_url)
+                            DBTools.add_url(dbconnection, current_url, current_redirect)
+            if subsequent:
+                subsequent_url = tvtropes_main + subsequent['href']
+                subsequent_redirect = test_redirect(subsequent_url.encode('ascii', 'ignore'))
+                if subsequent_redirect:
+                    subsequent_type, subsequent_key = identify_url(subsequent_redirect)
+                    if (subsequent_redirect not in urls_visited
+                            and subsequent_url not in new_urls and subsequent_type):
+                        new_urls.append(subsequent_url)
+                        DBTools.add_url(dbconnection, subsequent_url, subsequent_redirect)
     elif doRelated:
         logging.warning("No Relation Table found at %s", finalUrl)
         
     # Done Parsing, add to DB
     logging.debug("%s finished", url)
     urls_visited.add(url)
-    commit_page(dbconnection, url)
+    DBTools.commit_page(dbconnection, url)
     return 0
 
 # Recurse through all links found
@@ -612,13 +611,15 @@ def start_at_top():
                 url = re.search("href='([^\s]*)'", line).group(1)
                 print 'category: ' + category + '\t' + url
 
-if __name__ == "__main__":
-    # Let's set up some tests
-    dbconnection = initialise_db() 
+    consoleOut = ColourStreamHandler.ColourStreamHandler
+    consoleOut.setFormatter(logging.Formatter(console_format))
+    logging.getLogger().addHandler(consoleOut)
+
+    dbconnection = DBTools.initialise_db()
     dbcursor = dbconnection.cursor()
-   
-    unreadUrls, oldUrls = get_urls(dbconnection)
-    redirects = get_redirects(dbconnection)
+
+    unreadUrls, oldUrls = DBTools.get_urls(dbconnection)
+    redirects = DBTools.get_redirects(dbconnection)
     for url in oldUrls:
         urls_visited.add(url[0])
     for url in unreadUrls:
@@ -646,6 +647,6 @@ if __name__ == "__main__":
         loop_search()
     else:
         logging.debug("Starting New Run fresh from %s", testUrl)
-        add_url(dbconnection, testUrl)
+        DBTools.add_url(dbconnection, testUrl)
         recur_search(testUrl)
 
