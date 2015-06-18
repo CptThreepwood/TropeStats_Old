@@ -6,3 +6,5 @@ Scraping and Analysis of tvtropes.com
 
 ### Python
 * BeautifulSoup
+
+`pip install beautifulsoup4`
