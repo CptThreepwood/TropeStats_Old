@@ -18,22 +18,6 @@ new_urls = deque()
 known_redirects = {}
 urls_visited = set()
 
-f = open("Scrape.log", 'a')
-f.write('\n---------------------------------------------------------\n')
-f.close()
-
-logFormat = '[%(asctime)s] %(filename)-20s %(levelname)8s - %(message)s'
-consoleFormat = '%(filename)-20s %(levelname)8s : %(message)s'
-logging.basicConfig(format=logFormat, level=logging.INFO, filename='Scrape.log', filemode = 'a')
-
-#consoleOut = logging.StreamHandler()
-#consoleOut.setFormatter(logging.Formatter(consoleFormat))
-#logging.getLogger().addHandler(consoleOut)
-
-consoleOut = ColourStreamHandler.ColourStreamHandler
-consoleOut.setFormatter(logging.Formatter(consoleFormat))
-logging.getLogger().addHandler(consoleOut)
-
 # Sometimes TvTropes doesn't refer to media with the right name
 # This is dumb and requires hacks.  Probably I should make this a config file.  Maybe later.
 known_aliases = {
@@ -587,29 +571,38 @@ def loop_search():
     dbconnection.close()
     return
 
+#def start_at_top():
+#    # Start the recursive search at the top level trope index
+#    htmltest = urllib.urlopen(tvtropes_tropeindex).readlines()
+#    interesting = False
+#    commentblock = '<!&#8212;index&#8212;>'
+#
+#    # Parsing HTML as text
+#    # This is kinda hacky but I can't be bothered changing it for now
+#    for line in htmltest:
+#        if commentblock in line:
+#            interesting = not interesting
+#        if not interesting:
+#            continue
+#        else:
+#            if "class='plus'" in line:
+#                index = re.search("title=.*>(.*)<", line).group(1)
+#                url = re.search("href='([^\s]*)'", line).group(1)
+#                print 'index: ' + index + '\t' + url
+#            elif "href" in line:
+#                category = re.search("title=.*>(.*)<", line).group(1)
+#                url = re.search("href='([^\s]*)'", line).group(1)
+#                print 'category: ' + category + '\t' + url
 
-def start_at_top():
-    # Start the recursive search at the top level trope index
-    htmltest = urllib.urlopen(tvtropes_tropeindex).readlines()
-    interesting = False
-    commentblock = '<!&#8212;index&#8212;>'
+if __name__ == "__main__":
+    f = open("Scrape.log", 'a')
+    f.write('\n---------------------------------------------------------\n')
+    f.close()
 
-    # Parsing HTML as text
-    # This is kinda hacky but I can't be bothered changing it for now
-    for line in htmltest:
-        if commentblock in line:
-            interesting = not interesting
-        if not interesting:
-            continue
-        else:
-            if "class='plus'" in line:
-                index = re.search("title=.*>(.*)<", line).group(1)
-                url = re.search("href='([^\s]*)'", line).group(1)
-                print 'index: ' + index + '\t' + url
-            elif "href" in line:
-                category = re.search("title=.*>(.*)<", line).group(1)
-                url = re.search("href='([^\s]*)'", line).group(1)
-                print 'category: ' + category + '\t' + url
+    log_format = '[%(asctime)s] %(filename)-20s %(levelname)8s - %(message)s'
+    console_format = '%(filename)-20s %(levelname)8s : %(message)s'
+    logging.basicConfig(format=log_format, level=logging.INFO,
+                        filename='Scrape.log', filemode='a')
 
     consoleOut = ColourStreamHandler.ColourStreamHandler
     consoleOut.setFormatter(logging.Formatter(console_format))
