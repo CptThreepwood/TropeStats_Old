@@ -1,3 +1,7 @@
+"""
+Scrape relevant information from TvTropes
+http://tvtropes.org/
+"""
 import urllib
 import urllib2
 import sys
@@ -144,29 +148,35 @@ allowedMedia = [
     'wrestling',
     ]
 
-# Can I work out a way to scrape this?  Maybe using the full list and hardcode some specific allowed types?
+# Can I work out a way to scrape this?
+# Maybe using the full list and hardcode some specific allowed types?
 # This will do for now
 ignoredTypes = [
     # Ignore languages other than English (for now)
-    'de', 'eo', 'es', 'fi', 'fr', 'hu', 'it', 'itadministrivia', 'itdarthwiki', 'itsugarwiki', 'no', 'pl', 'pt', 'ro', 'se', 
-    
-    # Ignore YMMV type namespaces
-    'aatafovs', 'accidentalnightmarefuel', 'alternativecharacterinterpretation', 'andthefandomrejoiced', 'analysis', 'awesome', 
-    'awesomebosses', 'awesomebutimpractical', 'awesomemusic', 'badass', 'betterthanitsounds', 'fetishfuel', 'fridge', 'fridgebrilliance', 'fridgehorror', 
-    'funny', 'headscratchers', 'heartwarming', 'highoctanenightmarefuel', 'horrible', 'narm', 'nightmarefuel', 'shockingelimination', 'thatoneboss',
-    'thescrappy', 'whatanidiot', 'ymmv',
+    'de', 'eo', 'es', 'fi', 'fr', 'hu', 'it', 'itadministrivia',
+    'itdarthwiki', 'itsugarwiki', 'no', 'pl', 'pt', 'ro', 'se',
 
+    # Ignore YMMV type namespaces
+    'aatafovs', 'accidentalnightmarefuel', 'alternativecharacterinterpretation',
+    'andthefandomrejoiced', 'analysis', 'awesome', 'awesomebosses', 'awesomebutimpractical',
+    'awesomemusic', 'badass', 'betterthanitsounds', 'fetishfuel', 'fridge', 'fridgebrilliance',
+    'fridgehorror', 'funny', 'headscratchers', 'heartwarming', 'highoctanenightmarefuel',
+    'horrible', 'narm', 'nightmarefuel', 'shockingelimination', 'thatoneboss', 'thescrappy',
+    'whatanidiot', 'ymmv',
 
     # Ignored types that we may add in future
     'allblue', 'shoutout', 'usefulnotes', 'whamepisode',
 
     # Ignore TVtropes pages not relevant to project
-    'administrivia', 'charactersheets', 'characters', 'community', 'cowboybebopathiscomputer', 'creatorkiller', 'crimeandpunishmentseries', 
-    'darthwiki', 'dieforourship', 'directlinetotheauthor', 'drinkinggame', 'encounters', 'fanficrecs', 'fannickname', 'fishytheascendant', 'funwithacronyms', 'gush', 'haiku', 
-    'hellisthatnoise', 'hoyay', 'imagelinks', 'images', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect', 'memes', 'pantheon', 
-    'quotes', 'recap', 'referencedby', 'ride', 'sandbox', 'selfdemonstrating', 'slidingscale', 'soyouwantto', 'sugarwiki', 'thatoneboss',
-    'trivia', 'tropeco', 'tropers', 'tropertales', 'troubledproduction', 'turnofthemillennium', 'warpthataesop', 'wmg', 'workpagesinmain',
-    'monster', 'wallbangers',
+    'administrivia', 'charactersheets', 'characters', 'community', 'cowboybebopathiscomputer',
+    'creatorkiller', 'crimeandpunishmentseries', 'darthwiki', 'dieforourship',
+    'directlinetotheauthor', 'drinkinggame', 'encounters', 'fanficrecs', 'fannickname',
+    'fishytheascendant', 'funwithacronyms', 'gush', 'haiku', 'hellisthatnoise', 'hoyay',
+    'imagelinks', 'images', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect',
+    'memes', 'pantheon', 'quotes', 'recap', 'referencedby', 'ride', 'sandbox', 'selfdemonstrating',
+    'slidingscale', 'soyouwantto', 'sugarwiki', 'thatoneboss', 'trivia', 'tropeco', 'tropers',
+    'tropertales', 'troubledproduction', 'turnofthemillennium', 'warpthataesop', 'wmg',
+    'workpagesinmain', 'monster', 'wallbangers',
     ]
 
 tvtropes_base = "tvtropes.org"
@@ -176,17 +186,22 @@ tvtropes_trope = tvtropes_page + "Main/"
 tvtropes_tropeindex = tvtropes_trope + "Tropes"
 
 def test_redirect(url):
+    '''
+    Find if a url redirects
+    If it does, return that new url
+    '''
     # Remove Tvtropes redirect tag
-    redirectIndex = url.rfind("?from=") 
-    finalURL = None
-    if redirectIndex > 0:
-        url = url[0:redirectIndex]
+    redirect_index = url.rfind("?from=")
+    final_url = None
+    if redirect_index > 0:
+        url = url[0:redirect_index]
     if url in known_redirects:
-        finalURL = known_redirects[url]
+        final_url = known_redirects[url]
     else:
         logging.debug("Testing redirect for %s", url)
         req = urllib2.Request(url)
-        try: res = urllib2.urlopen(req)
+        try:
+            res = urllib2.urlopen(req)
         except urllib2.HTTPError:
             logging.error("%s could not be found", url)
             return None
@@ -194,108 +209,123 @@ def test_redirect(url):
             logging.error("Unknown error opening %s", url)
             logging.error("%s", sys.exc_info()[0])
             return None
-        finalURL = res.geturl()
+        final_url = res.geturl()
         # Remove Tvtropes redirect tag
-        redirectIndex = finalURL.rfind("?from=") 
-        if redirectIndex > 0:
-            finalURL = finalURL[0:redirectIndex]
-        known_redirects[url] = finalURL
-    return finalURL
+        redirect_index = final_url.rfind("?from=")
+        if redirect_index > 0:
+            final_url = final_url[0:redirect_index]
+        known_redirects[url] = final_url
+    return final_url
 
-def identify_url(url, parentName = None):
-    urlComponents = url.split('/')
-    urlType = urlComponents[-2]
-    urlName = urlComponents[-1]
-    
+def identify_url(url, parent_name=None):
+    '''
+    Identify page type by parsing the url
+    '''
+    url_components = url.split('/')
+    url_type = url_components[-2]
+    url_name = url_components[-1]
+
     # Simple Cases.  Page Url is .../Type/Name
     # If we're ignoring this page type -> return None
-    if any(urlType.lower() == ignored for ignored in ignoredTypes):
-        logging.info("Ignored Type: %s", urlType)
-        return None, None
+    if any(url_type.lower() == ignored for ignored in ignoredTypes):
+        logging.info("Ignored Type: %s", url_type)
+        page_type = None
+        page_key = None
     # If this is a media url -> return "media", type/name
-    elif any(urlType.lower() == media for media in allowedMedia):
-        pageType = "media"
-        pageKey = urlType + '/' + urlName
+    elif any(url_type.lower() == media for media in allowedMedia):
+        page_type = "media"
+        page_key = url_type + '/' + url_name
     # If this is a trope url -> return "trope", name
-    elif urlType == "Main":
-        pageType = "trope"
-        pageKey = urlName
+    elif url_type == "Main":
+        page_type = "trope"
+        page_key = url_name
 
-    # Trickier Cases. SubPages where er have the parentName because we came from that page
+    # Trickier Cases. SubPages where we have the parent_name because we came from that page
     # Ignored types for trope sub-pages
-    elif urlType == parentName and any(urlName.lower() == media for media in ignoredTypes):
-        logging.info("Ignored Type: %s", urlType)
-        return None, None
+    elif url_type == parent_name and any(url_name.lower() == media for media in ignoredTypes):
+        logging.info("Ignored Type: %s", url_type)
+        page_type = None
+        page_key = None
     # MediaSubPage Url is something like /MediaName/TropesAtoC
     # If this is a media sub-page -> return "mediaSubPage", mediaName
-    elif urlType == parentName and re.search("[A-Za-z][Tt]o[A-Za-z]$", urlName):
-        pageType = "mediaSubPage"
-        pageKey = parentName 
+    elif url_type == parent_name and re.search("[A-Za-z][Tt]o[A-Za-z]$", url_name):
+        page_type = "mediaSubPage"
+        page_key = parent_name
     # TropeSubPage Url is something like /TropeName/MediaType
     # If this is a trope sub-page -> return "tropeSubPage", tropeName
-    elif urlType == parentName and any(urlName.lower() == media for media in allowedMedia):
-        pageType = "tropeSubPage"
-        pageKey = parentName
+    elif url_type == parent_name and any(url_name.lower() == media for media in allowedMedia):
+        page_type = "tropeSubPage"
+        page_key = parent_name
     # Sometimes a name is shortened for sub-pages.  This is really annoying.
     # If this is a media sub-page with a known alias -> return "mediaSubPage", mediaName
-    elif parentName in known_aliases:
-        if urlType == known_aliases[parentName] and "Tropes" in urlName:
-            pageType = "mediaSubPage"
-            pageKey = parentName 
-        elif urlType == known_aliases[parentName] and any(urlName.lower() == media for media in allowedMedia):
-            pageType = "tropeSubPage"
-            pageKey = parentName
-        elif urlType == known_aliases[parentName]:
+    elif parent_name in known_aliases:
+        if url_type == known_aliases[parent_name] and "Tropes" in url_name:
+            page_type = "mediaSubPage"
+            page_key = parent_name
+        elif (url_type == known_aliases[parent_name]
+              and any(url_name.lower() == media for media in allowedMedia)):
+            page_type = "tropeSubPage"
+            page_key = parent_name
+        elif url_type == known_aliases[parent_name]:
             logging.warning("Known Alias but not a Recognised SubPage: %s", url)
-            return None, None
+            page_type = None
+            page_key = None
         else:
             logging.warning("Unknown Page Type: %s", url)
-            return None, None
-    
+            page_type = None
+            page_key = None
+
     # Complicated Cases. For the first cases we have Name because we came from that page
     # What if a page links to a sub-page for another trope
-    elif any(urlName.lower() == media for media in allowedMedia):
-        testUrl = tvtropes_trope + urlType
+    elif any(url_name.lower() == media for media in allowedMedia):
+        test_url = tvtropes_trope + url_type
         logging.info("Possibly a link to a sub-page not from a parent %s", url)
-        logging.info("Testing for %s", testUrl)
-        result = test_redirect(testUrl)
+        logging.info("Testing for %s", test_url)
+        result = test_redirect(test_url)
         if result:
             logging.info("Found a trope page")
-            pageType = "trope"
-            pageKey = urlType
+            page_type = "trope"
+            page_key = url_type
         else:
-            return None, None
+            page_type = None
+            page_key = None
     else:
         logging.error("Unknown Url: %s", url)
-        logging.error("On page: %s with %s/%s", parentName, urlType, urlName)
-        return None, None
-    return pageType, pageKey
+        logging.error("On page: %s with %s/%s", parent_name, url_type, url_name)
+        page_type = None
+        page_key = None
+    return page_type, page_key
 
-def parse_page(url, options = None):
+def parse_page(url, options=None):
+    '''
+    Extract all relevant information from url
+    options exists to aid parsing sub-pages
+    maybe it's scope will be expanded in future
+    '''
     global dbcursor
     global dbconnection
-    
+
     # Load Page
     html = BeautifulSoup(urllib.urlopen(url))
 
-    pageType = None
-    pageKey = None
+    page_type = None
+    page_key = None
     # Get page information from options
     if options:
         for key in options:
             if key == "MediaSubPage":
-                pageType = "media"
-                pageKey = options[key]
+                page_type = "media"
+                page_key = options[key]
             if key == "TropeSubPage":
-                pageType = "trope"
-                pageKey = options[key]
+                page_type = "trope"
+                page_key = options[key]
     # If that didn't work try and work out info from url
-    if not pageType or not pageKey:
-        pageType, pageKey = identify_url(url)
+    if not page_type or not page_key:
+        page_type, page_key = identify_url(url)
 
     # Find text block
     textblock = html.find(attrs={"id": "wikitext"})
-    
+
     # If there is no text block, give up
     if not textblock:
         logging.error("%s has no wikitext", url)
@@ -304,44 +334,47 @@ def parse_page(url, options = None):
     # Save this page information
     # Fix this for the sub-page cases
     if options:
-        if any(x in options for x in ["MediaSubPage","TropeSubPage"]):
+        if any(x in options for x in ["MediaSubPage", "TropeSubPage"]):
             logging.info("%s", url)
-            logging.info("Adding to Entry: %s", pageKey)
+            logging.info("Adding to Entry: %s", page_key)
     elif url not in urls_visited:
         logging.info("Creating New Entry")
         if page_type == "media":
-            DBTools.add_media(dbconnection, page_key, url, html.find('title').string.replace(" - TV Tropes", ""))
-        if page_type == "trope":
-            DBTools.add_trope(dbconnection, page_key, url, html.find('title').string.replace(" - TV Tropes", ""))
-        
-    # There are some examples - Let's go find them    
+            DBTools.add_media(dbconnection, page_key, url,
+                              html.find('title').string.replace(" - TV Tropes", ""))
+        elif page_type == "trope":
+            DBTools.add_trope(dbconnection, page_key, url,
+                              html.find('title').string.replace(" - TV Tropes", ""))
+
+    # There are some examples - Let's go find them
     items = textblock.find_all('li')
-    nSubTags = 0
+    n_subtags = 0
     for item in items:
         # Find the first relevant link in a line
         links = item.find_all('a')
         link = None
-        initialUrl = None
-        finalUrl = None
+        initial_url = None
+        final_url = None
         for testlink in links:
             #if 'href' not in testlink:
             #    logging.warning("a element does not contain href: %s", testlink)
             #    continue
-            # Sometimes links contain unicode characters.  I'm guessing that's never something I want but this is kinda hacky
+            # Sometimes links contain unicode characters.
+            # I'm guessing that's never something I want but this is kinda hacky
             # I should instead flag this as an error and resolve it sensibly
-            # see: https://stackoverflow.com/questions/4389572/how-to-fetch-a-non-ascii-url-with-python-urlopen
-            initialUrl = testlink['href'].encode('ascii', 'ignore')
-            finalUrl = None
+            # https://stackoverflow.com/questions/4389572/how-to-fetch-a-non-ascii-url-with-python-urlopen
+            initial_url = testlink['href'].encode('ascii', 'ignore')
+            final_url = None
             # Save some time not bothering to follow external links
-            if tvtropes_page not in initialUrl:
+            if tvtropes_page not in initial_url:
                 continue
-            finalUrl = test_redirect(initialUrl) 
-            
+            final_url = test_redirect(initial_url)
+
             # Redirect unresolved
-            if not finalUrl:
+            if not final_url:
                 continue
             # Not sure if a tvtropes link will ever redirect somewhere else, but let's be safe
-            if tvtropes_page not in initialUrl:
+            if tvtropes_page not in initial_url:
                 continue
             # Found the first link worth following
             else:
@@ -350,86 +383,87 @@ def parse_page(url, options = None):
         # Verify we have a link
         if not link:
             continue
-        entryType, entryKey = identify_url(finalUrl, pageKey.split('/')[-1])
-       
+        entry_type, entry_key = identify_url(final_url, page_key.split('/')[-1])
+
         # Skip any 'li' nested within 'li'
         # Only skip if they aren't subPages (thanks Buffy)
-        if nSubTags > 0:
-            nSubTags -= 1
-            if entryType != "mediaSubPage" and entryType != "tropeSubPage":
+        if n_subtags > 0:
+            n_subtags -= 1
+            if entry_type != "mediaSubPage" and entry_type != "tropeSubPage":
                 continue
         else:
-            nSubTags = len(item.find_all('li'))
-        
+            n_subtags = len(item.find_all('li'))
+
         # Assign results to appropriate dictionary
         # Save tropes associated to this media, check their urls
-        if pageType == "media":
+        if page_type == "media":
             # Make a note of this connection
-            if entryType == "trope":
-                DBTools.add_relation(dbconnection, page_key, entryKey, 1, 1)
+            if entry_type == "trope":
+                DBTools.add_relation(dbconnection, page_key, entry_key, 1, 1)
             # Harvest urls to follow
-            if finalUrl not in urls_visited:
+            if final_url not in urls_visited:
                 # Add link to link database
-                if entryType == "trope":
-                    if initialUrl not in new_urls:
-                        new_urls.append(initialUrl)
-                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
+                if entry_type == "trope":
+                    if initial_url not in new_urls:
+                        new_urls.append(initial_url)
+                        DBTools.add_url(dbconnection, initial_url, final_url)
                 # We've got a bunch of sub-pages for this media
-                # Immediately go get subpage information 
-                elif entryType == "mediaSubPage":
+                # Immediately go get subpage information
+                elif entry_type == "mediaSubPage":
                     if options:
-                        logging.warning("There is a sub-subPage here or subPages refer to each other")
-                        logging.warning("Skipping %s", finalUrl)
+                        logging.warning("A sub-subPage or subPages refer to each other")
+                        logging.warning("Skipping %s", final_url)
                         continue
-                    parse_page(finalUrl, {"MediaSubPage" : pageKey})
+                    parse_page(final_url, {"MediaSubPage" : page_key})
                 # Franchise pages sometimes just link to each media subpage
-                # In this case we should investigate each of those links, but not associate them to the Franchise page
-                elif pageKey.split('/')[0] == "Franchise" and entryType == "media":
+                # In this case we should investigate each of those links,
+                # but not associate them to the Franchise page
+                elif page_key.split('/')[0] == "Franchise" and entry_type == "media":
                     # Add link to link database
-                    if initialUrl not in new_urls:
-                        new_urls.append(initialUrl)
-                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
-                elif entryType == "media":
-                    if initialUrl not in new_urls and finalUrl != tvtropes_page + pageKey:
-                        new_urls.append(initialUrl)
-                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
-                else :
-                    logging.warning("Not currently considering: %s", finalUrl)
-        # Save media associated to trope, check their urls
-        elif pageType == "trope":
-            # Make a note of this connection
-            if entryType == "media":
-                DBTools.add_relation(dbconnection, entryKey, page_key, 1, -1)
-            # Harvest urls to follow
-            if finalUrl not in urls_visited:
-                # Add link to link database
-                if entryType == "media":
-                    if initialUrl not in new_urls:
-                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
-                        new_urls.append(initialUrl)
-                # If this is a super-trope page, add tropes to list
-                elif entryType == "trope":
-                    if initialUrl not in new_urls and finalUrl != tvtropes_trope + pageKey:
-                        new_urls.append(initialUrl)
-                        DBTools.add_url(dbconnection, initialUrl, finalUrl)
-                # This tropes media have been split into types, go explore them all now
-                elif entryType == "tropeSubPage":
-                    if options:
-                        logging.warning("There is a sub-subPage here or subPages refer to each other")
-                        logging.warning("Skipping %s", finalUrl)
-                        continue
-                    parse_page(finalUrl, {"TropeSubPage" : pageKey})
+                    if initial_url not in new_urls:
+                        new_urls.append(initial_url)
+                        DBTools.add_url(dbconnection, initial_url, final_url)
+                elif entry_type == "media":
+                    if initial_url not in new_urls and final_url != tvtropes_page + page_key:
+                        new_urls.append(initial_url)
+                        DBTools.add_url(dbconnection, initial_url, final_url)
                 else:
-                    logging.warning("Not currently considering: %s", finalUrl)
+                    logging.warning("Not currently considering: %s", final_url)
+        # Save media associated to trope, check their urls
+        elif page_type == "trope":
+            # Make a note of this connection
+            if entry_type == "media":
+                DBTools.add_relation(dbconnection, entry_key, page_key, 1, -1)
+            # Harvest urls to follow
+            if final_url not in urls_visited:
+                # Add link to link database
+                if entry_type == "media":
+                    if initial_url not in new_urls:
+                        DBTools.add_url(dbconnection, initial_url, final_url)
+                        new_urls.append(initial_url)
+                # If this is a super-trope page, add tropes to list
+                elif entry_type == "trope":
+                    if initial_url not in new_urls and final_url != tvtropes_trope + page_key:
+                        new_urls.append(initial_url)
+                        DBTools.add_url(dbconnection, initial_url, final_url)
+                # This tropes media have been split into types, go explore them all now
+                elif entry_type == "tropeSubPage":
+                    if options:
+                        logging.warning("A sub-subPage or subPages refer to each other")
+                        logging.warning("Skipping %s", final_url)
+                        continue
+                    parse_page(final_url, {"TropeSubPage" : page_key})
+                else:
+                    logging.warning("Not currently considering: %s", final_url)
 
     # Map out related pages
-    doRelated = True
+    do_related = True
     if options:
-        if any(x in options for x in ["MediaSubPage","TropeSubPage"]):
-            doRelated = False
+        if any(x in options for x in ["MediaSubPage", "TropeSubPage"]):
+            do_related = False
 
     table = html.find_all(attrs={"class": "wiki-walk"})
-    if doRelated and table:    
+    if do_related and table:
         related = table[0]
         rows = related.find_all(attrs={"class": "walk-row"})
         for row in rows:
@@ -438,13 +472,14 @@ def parse_page(url, options = None):
             current = items[1].find('a')
             subsequent = items[2].find('a')
             if previous:
-                previousUrl = tvtropes_main + previous['href']
-                previousRedirect = test_redirect(previousUrl.encode('ascii', 'ignore'))
-                if previousRedirect:
-                    previousType, previousKey = identify_url(previousRedirect)
-                    if previousRedirect not in urls_visited and previousUrl not in new_urls and previousType:
-                        new_urls.append(previousUrl)
-                        DBTools.add_url(dbconnection, previousUrl, previousRedirect)
+                previous_url = tvtropes_main + previous['href']
+                previous_redirect = test_redirect(previous_url.encode('ascii', 'ignore'))
+                if previous_redirect:
+                    previous_type, previous_key = identify_url(previous_redirect)
+                    if (previous_redirect not in urls_visited
+                            and previous_url not in new_urls and previous_type):
+                        new_urls.append(previous_url)
+                        DBTools.add_url(dbconnection, previous_url, previous_redirect)
             if current:
                 current_url = tvtropes_main + current['href']
                 current_redirect = test_redirect(current_url.encode('ascii', 'ignore'))
@@ -465,9 +500,9 @@ def parse_page(url, options = None):
                             and subsequent_url not in new_urls and subsequent_type):
                         new_urls.append(subsequent_url)
                         DBTools.add_url(dbconnection, subsequent_url, subsequent_redirect)
-    elif doRelated:
-        logging.warning("No Relation Table found at %s", finalUrl)
-        
+    elif do_related:
+        logging.warning("No Relation Table found at %s", final_url)
+
     # Done Parsing, add to DB
     logging.debug("%s finished", url)
     urls_visited.add(url)
@@ -475,11 +510,15 @@ def parse_page(url, options = None):
     return 0
 
 # Recurse through all links found
-def recur_search(url = None):
+def recur_search(url=None):
+    '''
+    Use a recursive depth-first search across all of TvTropes
+    Number of urls accessed restricted by the LIMIT option
+    '''
     global counter
     if not url:
         url = new_urls.popleft()
-    
+
     # Don't follow external links
     if "tvtropes.org" not in url:
         logging.info("External Link Ignored: %s", url)
@@ -491,34 +530,34 @@ def recur_search(url = None):
         dbconnection.close()
         sys.exit()
 
-    finalUrl = test_redirect(url)
-    if not finalUrl:
+    final_url = test_redirect(url)
+    if not final_url:
         return
     counter = counter + 1
-    pageType, pageTitle = identify_url(finalUrl)
+    page_type, page_title = identify_url(final_url)
     # Code snippet to make ordinal numbers
-    # Taken from http://codegolf.stackexchange.com/questions/4707/outputting-ordinal-numbers-1st-2nd-3rd
-    ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
+    # http://codegolf.stackexchange.com/questions/4707/outputting-ordinal-numbers-1st-2nd-3rd
+    ordinal = lambda n: "%d%s" % (n, "tsnrhtdd"[(n/10%10 != 1)*(n%10 < 4)*n%10::4])
     logging.info("Processing %s url", ordinal(counter))
-    logging.info("%s", finalUrl)
+    logging.info("%s", final_url)
 
     # Ignore links with bad types
-    if pageType in ignoredTypes:
+    if page_type in ignoredTypes:
         logging.info("Link to unintersting page ignored")
         return
     # Ignore links already searched
-    if finalUrl in urls_visited:
+    if final_url in urls_visited:
         logging.debug("Link already discovered")
         if new_urls:
             recur_search(new_urls.popleft())
         return
 
-    logging.info("%s: %s", pageTitle, pageType)
+    logging.info("%s: %s", page_title, page_type)
 
-    parse_page(finalUrl)
+    parse_page(final_url)
     # If parsing is successful, add any original url to urls_visited too
-    #if not parse_page(finalUrl):
-    #    if finalUrl != url:
+    #if not parse_page(final_url):
+    #    if final_url != url:
     #        urls_visited.add(url)
 
     # Recurse this search through all untested urls
@@ -528,11 +567,15 @@ def recur_search(url = None):
     return
 
 def loop_search():
-    currentCount = 0
-    
-    while(new_urls):
+    '''
+    Use a breadth-first search across all of TvTropes
+    Number of urls accessed restricted by the LIMIT option
+    '''
+    current_count = 0
+
+    while new_urls:
         url = new_urls.popleft()
-        if limit > 0 and currentCount >= limit:
+        if limit > 0 and current_count >= limit:
             logging.critical("Exceeded limit")
             break
 
@@ -541,32 +584,32 @@ def loop_search():
             logging.info("External Link Ignored: %s", url)
             continue
 
-        finalUrl = test_redirect(url)
-        if not finalUrl:
+        final_url = test_redirect(url)
+        if not final_url:
             logging.info("%s could not be resolved", url)
             continue
-        currentCount = currentCount + 1
+        current_count = current_count + 1
 
-        pageType, pageTitle = identify_url(finalUrl)
+        page_type, page_title = identify_url(final_url)
         # Code snippet to make ordinal numbers
-        # Taken from http://codegolf.stackexchange.com/questions/4707/outputting-ordinal-numbers-1st-2nd-3rd
-        ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
+        # http://codegolf.stackexchange.com/questions/4707/outputting-ordinal-numbers-1st-2nd-3rd
+        ordinal = lambda n: "%d%s" % (n, "tsnrhtdd"[(n/10%10 != 1)*(n%10 < 4)*n%10::4])
 
         # Ignore links with bad types
-        if pageType in ignoredTypes:
+        if page_type in ignoredTypes:
             logging.info("Link to unintersting page ignored")
             continue
         # Ignore links already searched
-        if finalUrl in urls_visited:
+        if final_url in urls_visited:
             logging.debug("Link already discovered")
-            currentCount = currentCount -1
-            continue 
-        logging.info("Processing %s url", ordinal(currentCount))
-        logging.info("%s", finalUrl)
+            current_count = current_count -1
+            continue
+        logging.info("Processing %s url", ordinal(current_count))
+        logging.info("%s", final_url)
 
-        logging.info("%s: %s", pageTitle, pageType)
-        parse_page(finalUrl)
-    
+        logging.info("%s: %s", page_title, page_type)
+        parse_page(final_url)
+
     dbconnection.commit()
     dbconnection.close()
     return
@@ -620,26 +663,24 @@ if __name__ == "__main__":
     for redirect in redirects:
         known_redirects[redirect[0]] = redirect[1]
 
-    # Trope parsing test
-    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury") 
+    # Search Tvtropes
+    start_url = "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury"
 
-    # Media parsing test
-    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Manga/MahouSenseiNegima") 
-
-    # SuperTrope parsing test
-    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Main/ActionGirl") 
-    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/ActionGirl/AnimatedFilms") 
-    
-    # Recursive search test
-    testUrl = "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury"
-    
-    # Urls to fix
-    
     if new_urls:
         logging.debug("Starting New Run with %i urls to search", len(new_urls))
         loop_search()
     else:
-        logging.debug("Starting New Run fresh from %s", testUrl)
-        DBTools.add_url(dbconnection, testUrl)
-        recur_search(testUrl)
+        logging.debug("Starting New Run fresh from %s", start_url)
+        DBTools.add_url(dbconnection, start_url)
+        recur_search(start_url)
 
+    # TESTING AREA
+    # Trope parsing test
+    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury")
+
+    # Media parsing test
+    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Manga/MahouSenseiNegima")
+
+    # SuperTrope parsing test
+    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/Main/ActionGirl")
+    #parse_page("http://tvtropes.org/pmwiki/pmwiki.php/ActionGirl/AnimatedFilms")
