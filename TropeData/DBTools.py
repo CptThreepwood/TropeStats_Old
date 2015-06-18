@@ -1,116 +1,156 @@
+"""
+Database related functions
+"""
 import sqlite3
 import os.path
 import logging
 
-# Add Media to Media List
-# Doesn't commit straight away - Media should only be in here if it's finished parsing
-def add_media(dbconnection, mediaKey, mediaUrl, mediaTitle):
+def add_media(db_connection, media_key, media_url, media_title):
+    """
+    Add Media to Media List
+    Doesn't commit straight away - Media should only be in here if it's finished parsing
+    """
     try:
-        dbconnection.execute("INSERT INTO Media VALUES (?, ?, ?, date('now'))", (mediaKey, mediaUrl, mediaTitle))
+        db_connection.execute(
+            "INSERT INTO Media VALUES (?, ?, ?, date('now'))",
+            (media_key, media_url, media_title)
+            )
     except sqlite3.IntegrityError:
-        logging.error("Attempted to add media page %s twice: %s", mediaKey, mediaUrl)
+        logging.error("Attempted to add media page %s twice: %s", media_key, media_url)
     return
 
-# Add Trope to Trope List
-# Doesn't commit straight away - Media should only be in here if it's finished parsing
-def add_trope(dbconnection, tropeKey, tropeUrl, tropeTitle):
+def add_trope(db_connection, trope_key, trope_url, trope_title):
+    """
+    Add Trope to Trope List
+    Doesn't commit straight away - Media should only be in here if it's finished parsing
+    """
     try:
-        dbconnection.execute("INSERT INTO Tropes VALUES (?, ?, ?, date('now'))", (tropeKey, tropeUrl, tropeTitle))
+        db_connection.execute(
+            "INSERT INTO Tropes VALUES (?, ?, ?, date('now'))",
+            (trope_key, trope_url, trope_title)
+            )
     except sqlite3.IntegrityError:
-        logging.error("Attempted to add media page %s twice: %s", tropeKey, tropeUrl)
+        logging.error("Attempted to add media page %s twice: %s", trope_key, trope_url)
     return
 
-# Add link between Media and Trope
-# Direction shows if the link is bidirectional (0) or directed (-1 Trope->Media, +1 Media->Trope)
-# Doesn't commit straight away - Media should only be in here if it's finished parsing
-def add_relation(dbconnection, mediaKey, tropeKey, strength, direction):
-    dbcursor = dbconnection.cursor()
-    dbcursor.execute("SELECT * FROM MediaTropes WHERE Media=? AND Trope=?", (mediaKey, tropeKey))
+def add_relation(db_connection, media_key, trope_key, strength, direction):
+    """
+    Add link between Media and Trope
+    Direction shows if the link is bidirectional (0) or directed (-1 Trope->Media, +1 Media->Trope)
+    Doesn't commit straight away - Media should only be in here if it's finished parsing
+    """
+    dbcursor = db_connection.cursor()
+    dbcursor.execute("SELECT * FROM MediaTropes WHERE Media=? AND Trope=?", (media_key, trope_key))
     result = dbcursor.fetchone()
     if result:
         if result[3] != direction:
-            dbcursor.execute("UPDATE MediaTropes SET Direction=0 WHERE Media=? AND Trope=?", (mediaKey, tropeKey))
+            dbcursor.execute(
+                "UPDATE MediaTropes SET Direction=0 WHERE Media=? AND Trope=?",
+                (media_key, trope_key)
+                )
     else:
         try:
-            dbcursor.execute("INSERT INTO MediaTropes VALUES (?, ?, ?, ?)", (mediaKey, tropeKey, strength, direction))
+            dbcursor.execute(
+                "INSERT INTO MediaTropes VALUES (?, ?, ?, ?)",
+                (media_key, trope_key, strength, direction)
+                )
         except sqlite3.IntegrityError:
-            logging.error("Tried to add a relation that already exists but SELECT didn't find.  What is going on?")
-            logging.error("%s\t%s", pageKey, tropeKey)
+            logging.error("Tried to add a relation that already exists but could not SELECT")
+            logging.error("%s\t%s", media_key, trope_key)
     return
 
-def add_index(dbconnection, child, parent):
+def add_index(db_connection, child, parent):
+    """ Adds an index """
     try:
-        dbconnection.execute("INSERT INTO ParentIndicies VALUES (?, ?)", (child, parent))
+        db_connection.execute("INSERT INTO ParentIndicies VALUES (?, ?)", (child, parent))
     except sqlite3.IntegrityError:
         logging.error("Index %s already stored for %s", parent, child)
     return
 
-# Save a new url we've 
-# Commited straight away, no issue if calling script crashes mid-parse
-def add_url(dbconnection, url, redirect = None):
+def add_url(db_connection, url, redirect=None):
+    """
+    Save a new url we've Commited straight away
+    No issue if calling script crashes mid-parse
+    """
     if not redirect:
         redirect = url
     try:
-        with dbconnection:
-            dbconnection.execute("INSERT INTO UrlChecklist VALUES (?, ?, 0)", (url, redirect))
+        with db_connection:
+            db_connection.execute("INSERT INTO UrlChecklist VALUES (?, ?, 0)", (url, redirect))
     except sqlite3.IntegrityError:
         logging.error("Tried to add a url that already exists: %s", url)
     return
 
-# Save that we've checked a given Url
-# Commit immediately - maybe unintuitive
-# Update based on Redirect as we may need to change several entries
-def checked_url(dbconnection, url):
+def checked_url(db_connection, url):
+    """
+    Save that we've checked a given Url
+    Commit immediately - maybe unintuitive
+    Update based on Redirect as we may need to change several entries
+    """
     logging.info("Finished %s", url)
     try:
-        with dbconnection:
-            dbconnection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Redirect=?", (url,))
+        with db_connection:
+            db_connection.execute("UPDATE UrlChecklist SET Visited=1 WHERE Redirect=?", (url,))
     except KeyboardInterrupt:
         logging.error("Url update failed")
     return
 
-def commit_page(dbconnection, url):
-    dbconnection.commit()
-    checked_url(dbconnection, url)
+def commit_page(db_connection, url):
+    """ Commits a page """
+    db_connection.commit()
+    checked_url(db_connection, url)
     return
 
-# Return a list of unvisited Urls to visit and a list of visited Urls to avoid
-# Visited Urls should include both urls and any redirects
-def get_urls(dbconnection):
-    dbcursor = dbconnection.cursor()
+def get_urls(db_connection):
+    """
+    Return a list of unvisited Urls to visit and a list of visited Urls to avoid
+    Visited Urls should include both urls and any redirects
+    """
+    dbcursor = db_connection.cursor()
     dbcursor.execute("SELECT Url FROM UrlChecklist WHERE Visited=0")
-    newUrls = dbcursor.fetchall()
+    new_urls = dbcursor.fetchall()
     dbcursor.execute("SELECT Url FROM UrlChecklist WHERE Visited=1")
-    oldUrls = dbcursor.fetchall()
+    old_urls = dbcursor.fetchall()
     dbcursor.execute("SELECT Redirect FROM UrlChecklist WHERE Url != Redirect")
-    oldUrls += dbcursor.fetchall()
-    return newUrls, oldUrls
+    old_urls += dbcursor.fetchall()
+    return new_urls, old_urls
 
-# Return a list of tuples (url, redirect)
-# Useful to avoid testing a url we already know redirects to something else
-def get_redirects(dbconnection):
-    dbcursor = dbconnection.cursor()
+def get_redirects(db_connection):
+    """
+    Return a list of tuples (url, redirect)
+    Useful to avoid testing a url we already know redirects to something else
+    """
+    dbcursor = db_connection.cursor()
     dbcursor.execute("SELECT Url, Redirect FROM UrlChecklist")
     redirects = dbcursor.fetchall()
     return redirects
 
-# Get a list of media or tropes that is at least a week old
-def get_oldmedia(dbconnection):
-    dbcursor = dbconnection.cursor()
+def get_oldmedia(db_connection):
+    """ Get a list of media or tropes that is at least a week old """
+    dbcursor = db_connection.cursor()
     # Find all media for which the last visit less than 7 days from now
-    dbcursor.execute("SELECT MediaName FROM Media WHERE date(LastVisited) BETWEEN date('now', '-7 days') AND date('now')")
+    dbcursor.execute("""
+        SELECT MediaName
+        FROM Media
+        WHERE date(LastVisited) BETWEEN date('now', '-7 days') AND date('now')
+        """)
     all_media = dbcursor.fetchall()
     return all_media
 
-def get_oldtropes(dbconnection):
-    dbcursor = dbconnection.cursor()
+def get_oldtropes(db_connection):
+    """ Returns old tropes """
+    dbcursor = db_connection.cursor()
     # Find all tropes for which the last visit less than 7 days from now
-    dbcursor.execute("SELECT TropeName FROM Tropes WHERE date(LastVisited) BETWEEN date('now', '-7 days') AND date('now')")
+    dbcursor.execute("""
+        SELECT TropeName
+        FROM Tropes
+        WHERE date(LastVisited) BETWEEN date('now', '-7 days') AND date('now')
+        """)
     all_tropes = dbcursor.fetchall()
     return all_tropes
 
-# Connect to DB or create it if no DB is found
 def initialise_db():
+    """ Connect to DB or create it if no DB is found """
     # Connect to DB
     if os.path.isfile('TropeStats.db'):
         connection = sqlite3.connect('TropeStats.db')
@@ -134,8 +174,8 @@ def initialise_db():
                         LastVisited text,
                         CONSTRAINT PK_Trope PRIMARY KEY(TropeName))''')
         cursor.execute('''CREATE TABLE MediaTropes
-                       (Media text NOT NULL, 
-                        Trope text NOT NULL, 
+                       (Media text NOT NULL,
+                        Trope text NOT NULL,
                         Strength real,
                         Direction int,
                         CONSTRAINT PK_MediaTrope PRIMARY KEY(Media,Trope))''')
@@ -145,8 +185,8 @@ def initialise_db():
                          Visited int,
                          CONSTRAINT PK_Url PRIMARY KEY(Url))''')
         cursor.execute('''CREATE TABLE ParentIndicies
-                       (Child text NOT NULL, 
-                        Parent text NOT NULL, 
+                       (Child text NOT NULL,
+                        Parent text NOT NULL,
                         CONSTRAINT PK_MediaTrope PRIMARY KEY(Child,Parent))''')
 
         connection.commit()
