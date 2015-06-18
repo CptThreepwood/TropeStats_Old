@@ -8,17 +8,10 @@ import logging
 import ColourStreamHandler
 
 from DBTools import *
-import json 
-class SetEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, set):
-            return list(obj)
-        # Let the base class default method raise the TypeError
-        return json.JSONEncoder.default(self, obj)
 import sqlite3
 
 counter = 0
-limit = 10000
+limit = 50000
 
 DatabaseName = "TropeStats.db"
 dbconnection = None
@@ -621,7 +614,6 @@ def start_at_top():
 
 if __name__ == "__main__":
     # Let's set up some tests
-    outJSON = open("test.json", "w")
     dbconnection = initialise_db() 
     dbcursor = dbconnection.cursor()
    
@@ -656,24 +648,4 @@ if __name__ == "__main__":
         logging.debug("Starting New Run fresh from %s", testUrl)
         add_url(dbconnection, testUrl)
         recur_search(testUrl)
-
-#    print "URLS TO VISIT"
-#    for URL in new_urls:
-#        print URL
-#    print
-#    print "MEDIA INDEX:"
-#    print json.dumps(media, cls=SetEncoder) 
-#    json.dump(media, outJSON, indent = 4, cls=SetEncoder)
-#    print
-#    print "TROPE INDEX:"
-#    print json.dumps(tropes, cls=SetEncoder)
-#    json.dump(tropes, outJSON, indent = 4, cls=SetEncoder)
-#    print
-#    print "URLS VISITED:"
-#    print urls_visited
-#    print
-#    print "KNOWN REDIRECTS:"
-#    for redirect in known_redirects:
-#        print redirect, ": ", known_redirects[redirect]
-#    print
 
