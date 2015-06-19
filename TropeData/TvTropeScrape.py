@@ -14,7 +14,8 @@ import ColourStreamHandler
 import DBTools
 
 counter = 0
-limit = 50000
+LIMIT = 50000
+LOG_FILENAME = "Scrape.log"
 
 dbconnection = None
 dbcursor = None
@@ -524,7 +525,7 @@ def recur_search(url=None):
         logging.info("External Link Ignored: %s", url)
         return
 
-    if limit != -1 and counter >= limit:
+    if LIMIT != -1 and counter >= LIMIT:
         logging.critical("Exceeded limit")
         dbconnection.commit()
         dbconnection.close()
@@ -548,6 +549,8 @@ def recur_search(url=None):
     # Ignore links already searched
     if final_url in urls_visited:
         logging.debug("Link already discovered")
+        # This shouldn't really be here.  The logic needs to be fixed
+        DBTools.checked_url(dbconnection, final_url)
         if new_urls:
             recur_search(new_urls.popleft())
         return
@@ -575,13 +578,14 @@ def loop_search():
 
     while new_urls:
         url = new_urls.popleft()
-        if limit > 0 and current_count >= limit:
+        if LIMIT > 0 and current_count >= LIMIT:
             logging.critical("Exceeded limit")
             break
 
         # Don't follow external links
         if "tvtropes.org" not in url:
             logging.info("External Link Ignored: %s", url)
+            # Remove url from DB
             continue
 
         final_url = test_redirect(url)
@@ -602,6 +606,8 @@ def loop_search():
         # Ignore links already searched
         if final_url in urls_visited:
             logging.debug("Link already discovered")
+            # This shouldn't really be here.  The logic needs to be fixed
+            DBTools.checked_url(dbconnection, final_url)
             current_count = current_count -1
             continue
         logging.info("Processing %s url", ordinal(current_count))
@@ -638,14 +644,14 @@ def loop_search():
 #                print 'category: ' + category + '\t' + url
 
 if __name__ == "__main__":
-    f = open("Scrape.log", 'a')
+    f = open(LOG_FILENAME, 'a')
     f.write('\n---------------------------------------------------------\n')
     f.close()
 
     log_format = '[%(asctime)s] %(filename)-20s %(levelname)8s - %(message)s'
     console_format = '%(filename)-20s %(levelname)8s : %(message)s'
     logging.basicConfig(format=log_format, level=logging.INFO,
-                        filename='Scrape.log', filemode='a')
+                        filename=LOG_FILENAME, filemode='a')
 
     consoleOut = ColourStreamHandler.ColourStreamHandler
     consoleOut.setFormatter(logging.Formatter(console_format))
@@ -664,15 +670,18 @@ if __name__ == "__main__":
         known_redirects[redirect[0]] = redirect[1]
 
     # Search Tvtropes
-    start_url = "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury"
+    start_url = None
+    # start_url = "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury"
 
     if new_urls:
-        logging.debug("Starting New Run with %i urls to search", len(new_urls))
+        logging.info("Starting New Run with %i urls to search", len(new_urls))
         loop_search()
-    else:
-        logging.debug("Starting New Run fresh from %s", start_url)
+    elif start_url:
+        logging.info("Starting New Run fresh from %s", start_url)
         DBTools.add_url(dbconnection, start_url)
         recur_search(start_url)
+    else:
+        logging.info("No Urls to investigate.  Provide a start url if a new run is desired")
 
     # TESTING AREA
     # Trope parsing test
