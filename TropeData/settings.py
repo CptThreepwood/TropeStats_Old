@@ -48,7 +48,7 @@ allowed_media = [
     'comicstrip',
     'composer',
     'creator',
-    'dcanimateduniverse'
+    'dcanimateduniverse',
     'discworld',
     'disney',               # Apparently big enough to be it's own type of media.  Who knew?
     'disneyandpixar',
