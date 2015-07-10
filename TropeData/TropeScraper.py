@@ -29,9 +29,9 @@ class TropeScraper(object):
     urls_visited = set()
     data_handler = None
 
-    ignored_types = settings.ignored_types
-    allowed_media = settings.allowed_media
-    known_aliases = settings.known_aliases
+    ignored_types = settings.IGNORED_TYPES
+    allowed_media = settings.ALLOWED_MEDIA
+    known_aliases = settings.KNOWN_ALIASES
 
     def __init__(self):
 
@@ -394,7 +394,7 @@ class TropeScraper(object):
             logging.info("External Link Ignored: %s", url)
             return
 
-        if settings.limit != -1 and self.urls_parsed >= settings.limit:
+        if settings.LIMIT != -1 and self.urls_parsed >= settings.LIMIT:
             logging.critical("Exceeded limit")
             sys.exit()
 
@@ -445,7 +445,7 @@ class TropeScraper(object):
 
         while self.new_urls:
             url = self.new_urls.popleft()
-            if settings.limit > 0 and current_count >= settings.limit:
+            if settings.LIMIT > 0 and current_count >= settings.LIMIT:
                 logging.critical("Exceeded limit")
                 break
 
@@ -504,21 +504,21 @@ class TropeScraper(object):
 
 def main():
     """ Default run """
-    log = open(settings.log_filename, 'a')
+    log = open(settings.LOG_FILENAME, 'a')
     log.write('\n---------------------------------------------------------\n')
     log.close()
 
-    logging.basicConfig(format=settings.log_format, level=settings.log_level,
-                        filename=settings.log_filename, filemode='a')
+    logging.basicConfig(format=settings.LOG_FORMAT, level=settings.LOG_LEVEL,
+                        filename=settings.LOG_FILENAME, filemode='a')
 
     console_out = ColourStreamHandler.ColourStreamHandler
-    console_out.setFormatter(logging.Formatter(settings.console_format))
+    console_out.setFormatter(logging.Formatter(settings.CONSOLE_FORMAT))
     logging.getLogger().addHandler(console_out)
 
     # Search Tvtropes
     scraper = TropeScraper()
 
-    scraper.run(settings.run_options)
+    scraper.run(settings.RUN_OPTIONS)
 
 if __name__ == "__main__":
     main()

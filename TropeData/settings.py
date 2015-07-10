@@ -3,28 +3,28 @@ Settings for the scraper and analyser
 """
 import logging
 
-limit = 10
-run_options = {
-        #'run_mode' : 'loop',
-        'run_mode' : 'recursive',
+LIMIT = 10000000
+RUN_OPTIONS = {
+    #'run_mode' : 'loop',
+    'run_mode' : 'recursive',
 
-        #'start_url' : None,
-        'start_url' : "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury",
-        }
-log_filename = 'scrape_testNew.log'
+    #'start_url' : None,
+    'start_url' : "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury",
+    }
+LOG_FILENAME = 'scrape_testNew.log'
 
-log_format = '[%(asctime)s] %(filename)-20s %(levelname)8s - %(message)s'
-console_format = '%(filename)-20s %(levelname)8s : %(message)s'
-log_level = logging.INFO
+LOG_FORMAT = '[%(asctime)s] %(filename)-20s %(levelname)8s - %(message)s'
+CONSOLE_FORMAT = '%(filename)-20s %(levelname)8s : %(message)s'
+LOG_LEVEL = logging.INFO
 
 
 # Sometimes TvTropes doesn't refer to media with the right name
 # This is dumb and requires hacks.  Probably I should make this a config file.  Maybe later.
-known_aliases = {
+KNOWN_ALIASES = {
     'BuffyTheVampireSlayer' : 'Buffy'
     }
 
-allowed_media = [
+ALLOWED_MEDIA = [
     'advertising',
     'anime',
     'animeandmanga',
@@ -147,7 +147,7 @@ allowed_media = [
 # Can I work out a way to scrape this?
 # Maybe using the full list and hardcode some specific allowed types?
 # This will do for now
-ignored_types = [
+IGNORED_TYPES = [
     # Ignore languages other than English (for now)
     'de', 'eo', 'es', 'fi', 'fr', 'hu', 'it', 'itadministrivia',
     'itdarthwiki', 'itsugarwiki', 'no', 'pl', 'pt', 'ro', 'se',

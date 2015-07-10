@@ -8,4 +8,5 @@
 # Database and Logfiles
 *.log
 *.db
+*.db-journal
 
