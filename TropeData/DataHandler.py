@@ -175,6 +175,16 @@ class DataHandler(object):
         redirects = dbcursor.fetchall()
         return redirects
 
+    def get_media(self):
+        """ Get a list of all media """
+        dbcursor= self.connection.cursor()
+        dbcursor.execute("""
+            SELECT MediaName
+            FROM Media
+            """)
+        all_media = [elem[0] for elem in dbcursor.fetchall()]
+        return all_media
+
     def get_oldmedia(self):
         """ Get a list of media or tropes that is at least a week old """
         dbcursor = self.connection.cursor()
@@ -187,6 +197,16 @@ class DataHandler(object):
             """)
         all_media = dbcursor.fetchall()
         return all_media
+
+    def get_tropes(self):
+        """ Get a list of all tropes """
+        dbcursor= self.connection.cursor()
+        dbcursor.execute("""
+            SELECT TropeName
+            FROM Tropes
+            """)
+        all_tropes = [elem[0] for elem in dbcursor.fetchall()]
+        return all_tropes
 
     def get_oldtropes(self):
         """ Returns old tropes """
