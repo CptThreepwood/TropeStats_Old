@@ -2,8 +2,7 @@
 Scrape relevant information from TvTropes
 http://tvtropes.org/
 """
-import urllib
-import urllib2
+import requests
 import sys
 import re
 from collections import deque
@@ -16,9 +15,9 @@ from DataHandler import DataHandler
 
 TVTROPES_BASE = "tvtropes.org"
 TVTROPES_MAIN = "http://tvtropes.org"
-TVTROPES_PAGE = TVTROPES_MAIN + "/pmwiki/pmwiki.php/"
-TVTROPES_TROPE = TVTROPES_PAGE + "Main/"
-TVTROPES_TROPEINDEX = TVTROPES_TROPE + "Tropes"
+TVTROPES_PAGE = "%s/pmwiki/pmwiki.php" % TVTROPES_MAIN
+TVTROPES_TROPE = "%s/Main" % TVTROPES_PAGE
+TVTROPES_TROPEINDEX = "%s/Tropes" % TVTROPES_TROPE
 
 class TropeScraper(object):
     """
@@ -30,9 +29,9 @@ class TropeScraper(object):
     urls_visited = set()
     data_handler = None
 
-    ignored_types = settings.ignored_types
-    allowed_media = settings.allowed_media
-    known_aliases = settings.known_aliases
+    ignored_types = settings.IGNORED_TYPES
+    allowed_media = settings.ALLOWED_MEDIA
+    known_aliases = settings.KNOWN_ALIASES
 
     def __init__(self):
 
@@ -53,7 +52,7 @@ class TropeScraper(object):
         If it does, return that new url
         '''
         # Remove Tvtropes redirect tag
-        redirect_index = url.rfind("?from=")
+        redirect_index = str(url).rfind("?from=")
         final_url = None
         if redirect_index > 0:
             url = url[0:redirect_index]
@@ -61,22 +60,26 @@ class TropeScraper(object):
             final_url = self.known_redirects[url]
         else:
             logging.debug("Testing redirect for %s", url)
-            req = urllib2.Request(url)
             try:
-                res = urllib2.urlopen(req)
-            except urllib2.HTTPError:
+                req = requests.get(url)
+
+                final_url = req.url
+
+                # Remove Tvtropes redirect tag
+                redirect_index = final_url.rfind("?from=")
+                if redirect_index > 0:
+                    final_url = final_url[:redirect_index]
+
+                self.known_redirects[url] = final_url
+
+            except OSError:
                 logging.error("%s could not be found", url)
                 return None
             except BaseException as err:
                 logging.error("Unknown error opening %s", url)
-                logging.error("%s\n%s", sys.exc_info()[0], err.msg)
+                logging.error("%s\n%s", sys.exc_info()[0], err)
                 return None
-            final_url = res.geturl()
-            # Remove Tvtropes redirect tag
-            redirect_index = final_url.rfind("?from=")
-            if redirect_index > 0:
-                final_url = final_url[0:redirect_index]
-            self.known_redirects[url] = final_url
+
         return final_url
 
     def identify_url(self, url, parent_name=None):
@@ -167,7 +170,8 @@ class TropeScraper(object):
         maybe it's scope will be expanded in future
         '''
         # Load Page
-        html = BeautifulSoup(urllib.urlopen(url))
+        text = requests.get(url).text
+        html = BeautifulSoup(text)
 
         page_type = None
         page_key = None
@@ -223,7 +227,7 @@ class TropeScraper(object):
                 # I'm guessing that's never something I want but this is kinda hacky
                 # I should instead flag this as an error and resolve it sensibly
                 # https://stackoverflow.com/questions/4389572/how-to-fetch-a-non-ascii-url-with-python-urlopen
-                initial_url = testlink['href'].encode('ascii', 'ignore')
+                initial_url = testlink['href'] #.encode('ascii', 'ignore')
                 final_url = None
                 # Save some time not bothering to follow external links
                 if TVTROPES_PAGE not in initial_url:
@@ -339,10 +343,10 @@ class TropeScraper(object):
                 current = items[1].find('a')
                 subsequent = items[2].find('a')
                 if previous:
-                    previous_url = TVTROPES_MAIN + previous['href']
+                    previous_url = "".join([TVTROPES_MAIN, previous['href']])
                     previous_redirect = self.test_redirect(previous_url.encode('ascii', 'ignore'))
                     if previous_redirect:
-                        previous_type, previous_key = self.identify_url(previous_redirect)
+                        previous_type = self.identify_url(previous_redirect)[0]
                         if (previous_redirect not in self.urls_visited
                                 and previous_url not in self.new_urls and previous_type):
                             self.new_urls.append(previous_url)
@@ -390,7 +394,7 @@ class TropeScraper(object):
             logging.info("External Link Ignored: %s", url)
             return
 
-        if settings.limit != -1 and self.urls_parsed >= settings.limit:
+        if settings.LIMIT != -1 and self.urls_parsed >= settings.LIMIT:
             logging.critical("Exceeded limit")
             sys.exit()
 
@@ -441,7 +445,7 @@ class TropeScraper(object):
 
         while self.new_urls:
             url = self.new_urls.popleft()
-            if settings.limit > 0 and current_count >= settings.limit:
+            if settings.LIMIT > 0 and current_count >= settings.LIMIT:
                 logging.critical("Exceeded limit")
                 break
 
@@ -498,46 +502,23 @@ class TropeScraper(object):
             logging.info("No Urls to investigate.  Provide a start url if a new run is desired")
         return
 
-#def start_at_top(self):
-#    # Start the recursive search at the top level trope index
-#    htmltest = urllib.urlopen(TVTROPES_TROPEINDEX).readlines()
-#    interesting = False
-#    commentblock = '<!&#8212;index&#8212;>'
-#
-#    # Parsing HTML as text
-#    # This is kinda hacky but I can't be bothered changing it for now
-#    for line in htmltest:
-#        if commentblock in line:
-#            interesting = not interesting
-#        if not interesting:
-#            continue
-#        else:
-#            if "class='plus'" in line:
-#                index = re.search("title=.*>(.*)<", line).group(1)
-#                url = re.search("href='([^\s]*)'", line).group(1)
-#                print 'index: ' + index + '\t' + url
-#            elif "href" in line:
-#                category = re.search("title=.*>(.*)<", line).group(1)
-#                url = re.search("href='([^\s]*)'", line).group(1)
-#                print 'category: ' + category + '\t' + url
-#
 def main():
     """ Default run """
-    log = open(settings.log_filename, 'a')
+    log = open(settings.LOG_FILENAME, 'a')
     log.write('\n---------------------------------------------------------\n')
     log.close()
 
-    logging.basicConfig(format=settings.log_format, level=settings.log_level,
-                        filename=settings.log_filename, filemode='a')
+    logging.basicConfig(format=settings.LOG_FORMAT, level=settings.LOG_LEVEL,
+                        filename=settings.LOG_FILENAME, filemode='a')
 
     console_out = ColourStreamHandler.ColourStreamHandler
-    console_out.setFormatter(logging.Formatter(settings.console_format))
+    console_out.setFormatter(logging.Formatter(settings.CONSOLE_FORMAT))
     logging.getLogger().addHandler(console_out)
 
     # Search Tvtropes
     scraper = TropeScraper()
 
-    scraper.run(settings.run_options)
+    scraper.run(settings.RUN_OPTIONS)
 
 if __name__ == "__main__":
     main()

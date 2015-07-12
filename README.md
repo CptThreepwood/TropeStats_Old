@@ -8,3 +8,7 @@ Scraping and Analysis of tvtropes.com
 * BeautifulSoup
 
 `pip install beautifulsoup4`
+
+* Requests
+
+`pip install requests`
