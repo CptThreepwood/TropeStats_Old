@@ -19,12 +19,27 @@ log_level = logging.INFO
 
 
 # Sometimes TvTropes doesn't refer to media with the right name
-# This is dumb and requires hacks.  Probably I should make this a config file.  Maybe later.
+# This is dumb and requires hacks.
 known_aliases = {
     'BuffyTheVampireSlayer' : 'Buffy'
     }
 
+# Similarly certain tropes have uniquely named sub-pages.
+# Such sub-pages should remember the sub-type.  It's not like they are media.
+# Again an algorithmic way to generate this might be preferable.
+# Look for links on trope page which look like /trope/anything?
+# 'MainPageName': (ListOfSubPages, Allowed)
+special_subpages = {
+    'ApocalypseHow'     : (['Class0', 'Class1', 'Class2', 'Class3a', 'Class3b', 'Class4', 'Class5',
+                            'Class6', 'ClassX', 'ClassX2', 'ClassX3', 'ClassX4', 'ClassX5', 'ClassZ'
+                            ,], True),
+    'AnachronismStew'   : (['FilmsWithNoGoodExcuse'], True),
+    'BatmanGambit'      : (['BatmanGambitsInvolvingBatman'], True),
+    'DwarfFortress'     : (['.*'], False),
+    }
+
 allowed_media = [
+    'advertisements',
     'advertising',
     'anime',
     'animeandmanga',
@@ -32,11 +47,13 @@ allowed_media = [
     'animatedfilms',
     'animation',
     'arg',
+    'art',
     'asiananimation',
     'audio',
     'audioplay',
     'author',
     'blog',
+    'boardgames',
     'bollywood',
     'book',
     'cardgame',
@@ -45,11 +62,15 @@ allowed_media = [
     'comicbooks',
     'comic',
     'comics',
+    'comicsbook',
     'comicstrip',
+    'comicstrips',
     'composer',
     'creator',
+    'creators',
     'dcanimateduniverse',
     'discworld',
+    'disco',
     'disney',               # Apparently big enough to be it's own type of media.  Who knew?
     'disneyandpixar',
     'dreamworks',
@@ -59,6 +80,7 @@ allowed_media = [
     'fanfic',
     'fanfics',
     'fanfiction',
+    'fansubs',
     'fanwork',
     'fanworks',
     'film',
@@ -67,11 +89,16 @@ allowed_media = [
     'folklore',
     'folkloreandfairytales',
     'franchise',
+    'franchises',
     'gamebooks',
+    'gameshow',
+    'graphicnovel',
     'jokes',
     'larp',
     'letsplay',
+    'letsplays',
     'lightnovel',
+    'lightnovels',
     'literature',
     'liveaction',
     'liveactionfilm',
@@ -79,6 +106,7 @@ allowed_media = [
     'liveactiontv',
     'machinima',
     'manga',
+    'mangaandanime',
     'manhua',
     'manhwa',
     'manhwaandmanhua',
@@ -86,26 +114,36 @@ allowed_media = [
     'magazines',
     'marvelcinematicuniverse',
     'media',
+    'meta',
     'music',
+    'musical',
     'musicvideos',
     'myth',
+    'mythandlegend',
     'mythandreligion',
     'mythology',
+    'mythologyandfolklore',
     'mythologyandreligion',
     'mythsandreligion',
     'newmedia',
     'newspapercomic',
     'newspapercomics',
+    'oraltradition',
     'other',
+    'othermedia',
     'pinball',
     'podcast',
+    'podcasts',
+    'poetry',
+    'pop',
     'printmedia',
     'professionalwrestling',
+    'prosports',
     'prowrestling',
     'puppetshows',
     'radio',
     'reallife',
-    'recordedandstandupcomedy'
+    'recordedandstandupcomedy',
     'religion',
     'religionandmythology',
     'roleplay',
@@ -113,6 +151,7 @@ allowed_media = [
     'script',
     'series',
     'sports',
+    'standup',
     'standupcomedy',
     'tabletop',
     'tabletoprpg',
@@ -120,6 +159,7 @@ allowed_media = [
     'tabletopgames',
     'tabletopgaming',
     'television',
+    'televisionnetworks',
     'theater',
     'theatre',
     'themeparks',
@@ -137,6 +177,7 @@ allowed_media = [
     'webmedia',
     'weboriginal',
     'website',
+    'websitesandsoftwaredesigns',
     'webvideo',
     'webvideos',
     'westernanimation',
@@ -155,10 +196,10 @@ ignored_types = [
     # Ignore YMMV type namespaces
     'aatafovs', 'accidentalnightmarefuel', 'alternativecharacterinterpretation',
     'andthefandomrejoiced', 'analysis', 'awesome', 'awesomebosses', 'awesomebutimpractical',
-    'awesomemusic', 'badass', 'betterthanitsounds', 'fetishfuel', 'fridge', 'fridgebrilliance',
-    'fridgehorror', 'funny', 'headscratchers', 'heartwarming', 'highoctanenightmarefuel',
-    'horrible', 'narm', 'nightmarefuel', 'shockingelimination', 'thatoneboss', 'thescrappy',
-    'whatanidiot', 'ymmv',
+    'awesomemusic', 'badass', 'betterthanitsounds', 'dethroningmoment', 'fetishfuel', 'fridge',
+    'fridgebrilliance', 'fridgehorror', 'funny', 'headscratchers', 'heartwarming',
+    'highoctanenightmarefuel', 'horrible', 'narm', 'nightmarefuel', 'shockingelimination',
+    'tearjerker', 'thatoneboss', 'thescrappy', 'whatanidiot', 'ymmv',
 
     # Ignored types that we may add in future
     'allblue', 'shoutout', 'usefulnotes', 'whamepisode',
@@ -169,9 +210,12 @@ ignored_types = [
     'directlinetotheauthor', 'drinkinggame', 'encounters', 'fanficrecs', 'fannickname',
     'fishytheascendant', 'funwithacronyms', 'gush', 'haiku', 'hellisthatnoise', 'hoyay',
     'imagelinks', 'images', 'imagesource', 'justforfun', 'madmanentertainment', 'masseffect',
-    'memes', 'pantheon', 'quotes', 'recap', 'referencedby', 'ride', 'sandbox', 'selfdemonstrating',
+    'memes', 'namesthesame', 'pantheon', 'quotes', 'recap', 'referencedby', 'ride', 'sandbox', 'selfdemonstrating',
     'slidingscale', 'soyouwantto', 'sugarwiki', 'thatoneboss', 'trivia', 'tropeco', 'tropers',
-    'tropertales', 'troubledproduction', 'turnofthemillennium', 'warpthataesop', 'wmg',
+    'tropertales', 'troper', 'troubledproduction', 'turnofthemillennium', 'warpthataesop', 'wmg',
     'workpagesinmain', 'monster', 'wallbangers',
+
+    # Ignored media type - Try to keep this as short as possible
+    'tvtropes',
     ]
 
