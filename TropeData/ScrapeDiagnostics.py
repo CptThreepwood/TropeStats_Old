@@ -1,3 +1,4 @@
+""" Identify errors in the DB and log. """
 import re
 import settings
 import site_corrections
@@ -69,15 +70,15 @@ class ScrapeDiagnostics(object):
                     url_components = url.split('/')
                     url_type = url_components[-2]
                     url_name = url_components[-1]
-                    if (any(url_type.lower() == media for media in settings.allowed_media)
-                            or any(url_type.lower() == media for media in settings.ignored_types)):
+                    if (any(url_type.lower() == media for media in settings.ALLOWED_MEDIA)
+                            or any(url_type.lower() == media for media in settings.IGNORED_TYPES)):
                         self.add_error('missing_type_on_run')
                         if verbosity > 1:
                             print
                             print "Url missed assigned type: ", url_type.lower()
                             print "On page: ", working_page
-                    elif (any(url_name.lower() == media for media in settings.allowed_media)
-                          or any(url_name.lower() == media for media in settings.ignored_types)):
+                    elif (any(url_name.lower() == media for media in settings.ALLOWED_MEDIA)
+                          or any(url_name.lower() == media for media in settings.IGNORED_TYPES)):
                         self.add_error('missing_type_on_run')
                         if verbosity > 1:
                             print
@@ -96,9 +97,9 @@ class ScrapeDiagnostics(object):
                             print
                             print "Media specific subpage for trope: ", url
                             print "On page: ", working_page
-                    elif (url_type in settings.special_subpages
+                    elif (url_type in settings.SPECIAL_SUBPAGES
                           and any(re.match(test+'$', url_name) for test in
-                                  settings.special_subpages[url_type][0])):
+                                  settings.SPECIAL_SUBPAGES[url_type][0])):
                         self.add_error('unrecognized_special_subpage')
                         if verbosity > 1:
                             print msg
