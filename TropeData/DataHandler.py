@@ -1,6 +1,7 @@
 """
 Database related functions
 """
+import settings
 import sqlite3
 import os.path
 import logging
@@ -11,11 +12,11 @@ class DataHandler(object):
     def __init__(self):
         """ Connect to DB or create it if no DB is found """
         # Connect to DB
-        if os.path.isfile('TropeStats.db'):
-            self.connection = sqlite3.connect('TropeStats.db')
+        if os.path.isfile(settings.DB_LOCATION):
+            self.connection = sqlite3.connect(settings.DB_LOCATION)
         # Create DB
         else:
-            self.connection = sqlite3.connect('TropeStats.db')
+            self.connection = sqlite3.connect(settings.DB_LOCATION)
             cursor = self.connection.cursor()
 
             # Build Tables
@@ -177,7 +178,7 @@ class DataHandler(object):
 
     def get_media(self):
         """ Get a list of all media """
-        dbcursor= self.connection.cursor()
+        dbcursor = self.connection.cursor()
         dbcursor.execute("""
             SELECT MediaName
             FROM Media
@@ -200,7 +201,7 @@ class DataHandler(object):
 
     def get_tropes(self):
         """ Get a list of all tropes """
-        dbcursor= self.connection.cursor()
+        dbcursor = self.connection.cursor()
         dbcursor.execute("""
             SELECT TropeName
             FROM Tropes

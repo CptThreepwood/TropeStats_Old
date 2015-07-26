@@ -3,14 +3,16 @@ Settings for the scraper and analyser
 """
 import logging
 
+DB_LOCATION = '../TropeStats.sqlite3'
+
 LIMIT = 10
 RUN_OPTIONS = {
-        #'run_mode' : 'loop',
-        'run_mode' : 'recursive',
+    #'run_mode' : 'loop',
+    'run_mode' : 'recursive',
 
-        #'start_url' : None,
-        'start_url' : "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury",
-        }
+    #'start_url' : None,
+    'start_url' : "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury",
+    }
 LOG_FILENAME = 'scrape_testNew.log'
 
 LOG_FORMAT = '[%(asctime)s] %(filename)-20s %(levelname)8s - %(message)s'
@@ -22,6 +24,10 @@ LOG_LEVEL = logging.INFO
 # This is dumb and requires hacks.  Probably I should make this a config file.  Maybe later.
 KNOWN_ALIASES = {
     'BuffyTheVampireSlayer' : 'Buffy'
+    }
+
+SPECIAL_SUBPAGES = {
+    'DwarfFortress' : ['*'],
     }
 
 ALLOWED_MEDIA = [
