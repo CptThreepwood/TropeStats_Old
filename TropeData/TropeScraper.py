@@ -52,7 +52,7 @@ class TropeScraper(object):
         If it does, return that new url
         '''
         # Remove Tvtropes redirect tag
-        redirect_index = str(url).rfind("?from=")
+        redirect_index = url.rfind("?from=")
         final_url = None
         if redirect_index > 0:
             url = url[0:redirect_index]
@@ -513,6 +513,8 @@ def main():
 
     console_out = ColourStreamHandler.ColourStreamHandler
     console_out.setFormatter(logging.Formatter(settings.CONSOLE_FORMAT))
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger().addHandler(console_out)
 
     # Search Tvtropes
