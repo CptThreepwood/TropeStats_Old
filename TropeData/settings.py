@@ -3,10 +3,10 @@ Settings for the scraper and analyser
 """
 import logging
 
-LIMIT = 10
+LIMIT = -1
 RUN_OPTIONS = {
-        #'run_mode' : 'loop',
-        'run_mode' : 'recursive',
+        'run_mode' : 'loop',
+        #'run_mode' : 'recursive',
 
         #'start_url' : None,
         'start_url' : "http://tvtropes.org/pmwiki/pmwiki.php/Main/ChekhovsArmoury",
