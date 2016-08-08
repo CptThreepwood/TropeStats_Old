@@ -221,3 +221,24 @@ class DataHandler(object):
         all_tropes = dbcursor.fetchall()
         return all_tropes
 
+    def get_relations(self):
+        """ Get a list of all media-trope relationships """
+        dbcursor = self.connection.cursor()
+        dbcursor.execute("""
+            SELECT *
+            FROM MediaTropes
+            """)
+        all_relations = dbcursor.fetchall()
+        return all_relations
+
+    def execute_query(self, query):
+        """ Execute an SQL query.  Pass this SANITISED strings only """
+        sql_blacklist = ['drop', 'delete']
+        if any(word.casefold() in query.casefold() for word in sql_blacklist):
+            print("No queries with {0} will be executed".format([word for word in sql_blacklist if word.casefold() in query.casefold()][0]))
+            return
+        dbcursor = self.connection.cursor()
+        dbcursor.execute(query)
+        result = dbcursor.fetchall()
+        return result
+
