@@ -1,3 +1,4 @@
+""" Identify errors in the DB and log. """
 import re
 import settings
 import site_corrections
@@ -13,16 +14,92 @@ class ScrapeDiagnostics(object):
     known_tropes = []
     known_media_names = []
     known_media_types = []
+    error_types = {}
     error_count = {}
 
     datahandler = None
 
-    def __init__(self):
+    def __init__(self, verbosity = 1):
         self.data_handler = DataHandler()
         self.known_media = self.data_handler.get_media()
         self.known_media_names = [elem.split('/')[1] for elem in self.known_media]
         self.known_media_types = [elem.split('/')[0] for elem in self.known_media]
         self.known_tropes = self.data_handler.get_tropes()
+        self.verbosity = verbosity
+
+    def classify_error(self, error, working_page):
+        url =  error[13:]
+        url_components = url.split('/')
+        url_type = url_components[-2]
+        url_name = url_components[-1]
+        if (any(url_type.lower() == media for media in settings.ALLOWED_MEDIA)
+         or any(url_type.lower() == media for media in settings.IGNORED_TYPES)):
+            self.add_error('missing_type_on_run')
+            if self.verbosity > 1:
+                print
+                print "Url missed assigned type: ", url_type.lower()
+                print "On page: ", working_page
+        elif (any(url_name.lower() == media for media in settings.ALLOWED_MEDIA)
+           or any(url_name.lower() == media for media in settings.IGNORED_TYPES)):
+            self.add_error('missing_type_on_run')
+            if self.verbosity > 1:
+                print
+                print "Sub-page Url missed assigned type: ", url_type.lower()
+                print "On page: ", working_page
+        elif re.search("[A-Za-z][tT]o[A-Z][a-z]$", error):
+            self.add_error('bad_regexp')
+            if self.verbosity > 1:
+                print
+                print "Mistaken SubPage ",  error
+                print "On page: ", working_page
+        elif (url_type in self.known_tropes
+          and url_name in self.known_media_names):
+            self.add_error('specific_media_trope')
+            if self.verbosity > 1:
+                print
+                print "Media specific subpage for trope: ", url
+                print "On page: ", working_page
+        #elif (url_type in settings.special_subpages
+        #  and any(re.match(test+'$', url_name) for test in
+        #    settings.special_subpages[url_type][0])):
+        #    self.add_error('unrecognized_special_subpage')
+        #    if self.verbosity > 1:
+        #        print  error
+        #        print "Special subpage of ", url_type
+        elif url in site_corrections.corrections:
+            self.add_error('spelling_errors_fixed')
+            if self.verbosity > 1:
+                print
+                print "Corrected ", url
+                print "to        ", site_corrections.corrections[url]
+                print "On page: ", working_page
+        else:
+            error_type, potential_fixes = self.check_url(url)
+            #error_type, potential_fixes = None, None
+            if error_type:
+                self.add_error(error_type)
+                if error_type == "misspelled_url" and self.verbosity > 0:
+                    print
+                    print "On page: ", working_page
+                    print "Misspelled Url: ", url
+                    print "Most likely fix: ", potential_fixes[0]
+                    if self.verbosity > 1:
+                        print "Other fixes: "
+                        for fix in potential_fixes[1:]:
+                            print fix
+                elif self.verbosity > 1:
+                    print
+                    print "Url has no matching page"
+                    print  error
+                    print "On page: ", working_page
+            else:
+                self.add_error('unknown_error')
+                if self.verbosity > 0:
+                    print
+                    print "Unknown Error"
+                    print  error
+                    print "On page: ", working_page
+
 
     def add_error(self, error):
         if error in self.error_count:
@@ -53,7 +130,7 @@ class ScrapeDiagnostics(object):
                 type_hist[media_type.lower()] = 1
         return type_hist
 
-    def scan_errors(self, verbosity=1):
+    def scan_errors(self):
         '''
         Scan for errors in the log file
         '''
@@ -65,78 +142,7 @@ class ScrapeDiagnostics(object):
                 working_page = next(log).split('-')[-1].strip()
             if "ERROR" in line:
                 if "Unknown Url" in msg:
-                    url = msg[13:]
-                    url_components = url.split('/')
-                    url_type = url_components[-2]
-                    url_name = url_components[-1]
-                    if (any(url_type.lower() == media for media in settings.allowed_media)
-                            or any(url_type.lower() == media for media in settings.ignored_types)):
-                        self.add_error('missing_type_on_run')
-                        if verbosity > 1:
-                            print
-                            print "Url missed assigned type: ", url_type.lower()
-                            print "On page: ", working_page
-                    elif (any(url_name.lower() == media for media in settings.allowed_media)
-                          or any(url_name.lower() == media for media in settings.ignored_types)):
-                        self.add_error('missing_type_on_run')
-                        if verbosity > 1:
-                            print
-                            print "Sub-page Url missed assigned type: ", url_type.lower()
-                            print "On page: ", working_page
-                    elif re.search("[A-Za-z][tT]o[A-Z][a-z]$", line):
-                        self.add_error('bad_regexp')
-                        if verbosity > 1:
-                            print
-                            print "Mistaken SubPage ", msg
-                            print "On page: ", working_page
-                    elif (url_type in self.known_tropes
-                          and url_name in self.known_media_names):
-                        self.add_error('specific_media_trope')
-                        if verbosity > 1:
-                            print
-                            print "Media specific subpage for trope: ", url
-                            print "On page: ", working_page
-                    elif (url_type in settings.special_subpages
-                          and any(re.match(test+'$', url_name) for test in
-                                  settings.special_subpages[url_type][0])):
-                        self.add_error('unrecognized_special_subpage')
-                        if verbosity > 1:
-                            print msg
-                            print "Special subpage of ", url_type
-                    elif url in site_corrections.corrections:
-                        self.add_error('spelling_errors_fixed')
-                        if verbosity > 1:
-                            print
-                            print "Corrected ", url
-                            print "to        ", site_corrections.corrections[url]
-                            print "On page: ", working_page
-                    else:
-                        error_type, potential_fixes = self.check_url(url)
-                        #error_type, potential_fixes = None, None
-                        if error_type:
-                            self.add_error(error_type)
-                            if error_type == "misspelled_url" and verbosity > 0:
-                                print
-                                print "On page: ", working_page
-                                print "Misspelled Url: ", url
-                                print "Most likely fix: ", potential_fixes[0]
-                                if verbosity > 1:
-                                    print "Other fixes: "
-                                    for fix in potential_fixes[1:]:
-                                        print fix
-                            elif verbosity > 1:
-                                print
-                                print "Url has no matching page"
-                                print msg
-                                print "On page: ", working_page
-                        else:
-                            self.add_error('unknown_error')
-                            if verbosity > 0:
-                                print
-                                print "Unknown Error"
-                                print msg
-                                print "On page: ", working_page
-
+                    error_type = self.classify_error(msg, working_page)
         print
         for error_type in self.error_count:
             print error_type, '\t', self.error_count[error_type]
@@ -150,8 +156,8 @@ def main():
     """ Default run """
     verbosity = 1
 
-    diagnostics = ScrapeDiagnostics()
-    diagnostics.scan_errors(verbosity)
+    diagnostics = ScrapeDiagnostics(verbosity)
+    diagnostics.scan_errors()
 
 if __name__ == "__main__":
     main()
