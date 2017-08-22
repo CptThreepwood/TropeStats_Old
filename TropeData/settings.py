@@ -3,7 +3,9 @@ Settings for the scraper and analyser
 """
 import logging
 
-LIMIT = -1
+DB_LOCATION = '../TropeStats.sqlite3'
+
+LIMIT = 10
 RUN_OPTIONS = {
         'run_mode' : 'loop',
         #'run_mode' : 'recursive',
@@ -22,6 +24,10 @@ LOG_LEVEL = logging.INFO
 # This is dumb and requires hacks.  Probably I should make this a config file.  Maybe later.
 KNOWN_ALIASES = {
     'BuffyTheVampireSlayer' : 'Buffy'
+    }
+
+SPECIAL_SUBPAGES = {
+    'DwarfFortress' : ['*'],
     }
 
 ALLOWED_MEDIA = [
